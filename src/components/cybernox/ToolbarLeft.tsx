@@ -41,13 +41,13 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
     { name: "Delete", icon: <Trash2 className="w-5 h-5" />, ariaLabel: "Delete Object (Delete)", action: onDeleteObject, destructive: true },
   ];
 
-  const shapes: { name: SceneObject['type']; icon: JSX.Element }[] = [
-    { name: "Cube", icon: <Box className="w-4 h-4 mr-2" /> },
-    { name: "Sphere", icon: <CircleDot className="w-4 h-4 mr-2" /> },
-    { name: "Plane", icon: <PlaneIconLucide className="w-4 h-4 mr-2" /> },
-    { name: "Pyramid", icon: <Pyramid className="w-4 h-4 mr-2" /> },
-    { name: "Cylinder", icon: <CylinderIcon className="w-4 h-4 mr-2" /> },
-    { name: "3DText", icon: <Type className="w-4 h-4 mr-2" /> },
+  const shapes: { name: SceneObject['type']; icon: JSX.Element; displayName: string }[] = [
+    { name: "Cube", icon: <Box className="w-4 h-4 mr-2" />, displayName: "Cube" },
+    { name: "Sphere", icon: <CircleDot className="w-4 h-4 mr-2" />, displayName: "Sphere" },
+    { name: "Plane", icon: <PlaneIconLucide className="w-4 h-4 mr-2" />, displayName: "Plane" },
+    { name: "Pyramid", icon: <Pyramid className="w-4 h-4 mr-2" />, displayName: "Pyramid" },
+    { name: "Cylinder", icon: <CylinderIcon className="w-4 h-4 mr-2" />, displayName: "Cylinder" },
+    { name: "3DText", icon: <Type className="w-4 h-4 mr-2" />, displayName: "3D Text" },
   ];
 
   return (
@@ -73,7 +73,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             {shapes.map((shape) => (
               <DropdownMenuItem key={shape.name} className="cursor-pointer" onSelect={() => onAddShape(shape.name)}>
                 {shape.icon}
-                <span>{shape.name}</span>
+                <span>{shape.displayName}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

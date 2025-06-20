@@ -66,21 +66,26 @@ export default function Cybernox3DPage() {
 
   const addSceneObject = useCallback((type: SceneObject['type']) => {
     const newObjectId = `object-${Date.now()}`;
-    let newObjectName = type;
+    let newObjectName = type === '3DText' ? '3D Text' : type; // Use spaced name for default naming
     let counter = 1;
-    while (sceneObjects.some(obj => obj.name === `${newObjectName} ${counter}`)) {
+    // Ensure the base name for numbering is consistent
+    const baseNameForCount = type === '3DText' ? '3D Text' : type;
+    while (sceneObjects.some(obj => obj.name === `${baseNameForCount} ${counter}`)) {
       counter++;
     }
-    newObjectName = `${newObjectName} ${counter}`;
+    newObjectName = `${baseNameForCount} ${counter}`;
 
     let textContent: string | undefined = undefined;
+    let objectColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+
     if (type === '3DText') {
       const userText = window.prompt("Enter text for the 3D object:", "Hello");
       if (userText === null || userText.trim() === "") {
-        toast({ title: "Text Input Cancelled", description: "No text provided, object not added.", variant: "destructive" });
+        toast({ title: "Text Input Cancelled", description: "No text provided, 3D Text object not added.", variant: "destructive" });
         return;
       }
       textContent = userText;
+      objectColor = '#FFFFFF'; // Default 3D Text to white
     }
 
     const newObject: SceneObject = {
@@ -90,7 +95,7 @@ export default function Cybernox3DPage() {
       position: [Math.random() * 4 - 2, 0.5 + Math.random() * 1, Math.random() * 4 - 2],
       rotation: [0, 0, 0],
       scale: type === 'Plane' ? [2,2,1] : [1, 1, 1],
-      color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`,
+      color: objectColor,
       text: textContent,
     };
 
@@ -121,10 +126,18 @@ export default function Cybernox3DPage() {
     const originalObject = sceneObjects.find(obj => obj.id === selectedObjectId);
     if (originalObject) {
       const newObjectId = `object-${Date.now()}`;
-      let baseName = originalObject.name.replace(/ \(\d+\)$/, "").replace(/ \(Copy \d+\)$/, "").replace(/ \d+$/, "");
-      if (originalObject.type === '3DText') {
-        baseName = "3DText"; // Keep base name simple for text copies for now
+      // Use the base name for copying, e.g., "Cube" from "Cube 1" or "3D Text" from "3D Text (Copy 1)"
+      let baseName = originalObject.type === '3DText' ? '3D Text' : originalObject.type;
+      
+      // Remove existing numbering or copy indicators for a cleaner base name
+      // This regex aims to strip " (Copy X)" or " X" from the end
+      const nameWithoutCopySuffix = originalObject.name.replace(/ \(\text{Copy} \d+\)$/, "");
+      const nameWithoutNumberSuffix = nameWithoutCopySuffix.replace(/ \d+$/, "");
+      if (sceneObjects.some(obj => obj.name.startsWith(nameWithoutNumberSuffix))) {
+          baseName = nameWithoutNumberSuffix;
       }
+
+
       let counter = 1;
       let newObjectName = `${baseName} (Copy ${counter})`;
 

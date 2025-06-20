@@ -79,7 +79,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#f0f0f0');
 
     cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
-    cameraRef.current.position.set(5, 5, 15); // Adjusted camera position
+    cameraRef.current.position.set(5, 5, 15); 
     cameraRef.current.lookAt(0,0,0);
 
     rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
@@ -129,7 +129,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       new THREE.ShadowMaterial({ opacity: 0.3, color: 0x999999 })
     );
     groundPlane.rotation.x = -Math.PI / 2;
-    groundPlane.position.y = -0.01;
+    groundPlane.position.y = -0.01; // Slightly below grid
     groundPlane.receiveShadow = true;
     sceneRef.current.add(groundPlane);
 
@@ -152,7 +152,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       }
     };
     window.addEventListener('resize', handleResize);
-    handleResize(); // Call once on init
+    handleResize(); 
 
     const observer = new MutationObserver(() => {
       if(sceneRef.current) {
@@ -172,7 +172,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         if ( intersects.length > 0 ) {
             let intersectedObject = intersects[0].object;
             while(intersectedObject.parent && !intersectedObject.userData.id) {
-                if (intersectedObject.parent === sceneRef.current) break;
+                if (intersectedObject.parent === sceneRef.current) break; // Stop if we reach the scene directly
                 intersectedObject = intersectedObject.parent;
             }
             if (intersectedObject.userData.id) {
@@ -242,21 +242,39 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
 
       if (existingThreeObject) {
-        // If it's a 3DText object and the text or type has changed, we might need to recreate it
-        // For now, we assume text content doesn't change after creation for simplicity in this step
-        // or type doesn't change from/to 3DText.
-        // A more robust solution would handle geometry recreation if objData.text changes.
+        // A more robust solution would handle geometry recreation if objData.text changes or type changes.
         existingThreeObject.position.set(...objData.position);
         existingThreeObject.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
         existingThreeObject.scale.set(...objData.scale);
-      } else {
+        if (existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
+            existingThreeObject.material.color.set(objData.color);
+        }
+
+         // Handle 3DText specific updates (recreate geometry if text changes)
+        if (objData.type === '3DText' && objData.text && font) {
+            const mesh = existingThreeObject as THREE.Mesh;
+            // Check if text content or other critical properties changed that require new geometry
+            if (mesh.userData.text !== objData.text || !mesh.geometry.type.includes('TextGeometry')) {
+                 sceneRef.current?.remove(mesh);
+                 if (transformControlsRef.current?.object === mesh) transformControlsRef.current.detach();
+                 mesh.geometry.dispose();
+                 if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose()); else mesh.material.dispose();
+                 threeObjectsRef.current.delete(objData.id);
+                 existingThreeObject = undefined; // Force recreation
+            }
+        }
+
+
+      }
+      
+      if (!existingThreeObject) { // Covers both new objects and text objects needing recreation
         let geometry: THREE.BufferGeometry | undefined;
         if (objData.type === '3DText') {
           if (font && objData.text) {
             const textGeo = new TextGeometry(objData.text, {
               font: font,
-              size: 0.5,
-              height: 0.1,
+              size: 1.0, // Increased size
+              height: 0.2, // Increased depth
               curveSegments: 12,
               bevelEnabled: false,
             });
@@ -267,9 +285,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             }
             geometry = textGeo;
           } else {
-            // Font not loaded yet or no text, create a placeholder or skip
-            console.warn("3DText object created but font not loaded or no text provided. Skipping mesh creation for now.", objData.name);
-            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); // Placeholder if font fails
+            console.warn("3DText object: font not loaded or no text. Using placeholder.", objData.name);
+            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); // Small placeholder
           }
         } else {
             switch (objData.type) {
@@ -286,6 +303,10 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             mesh.castShadow = true;
             mesh.receiveShadow = true;
             mesh.userData = { id: objData.id, type: objData.type };
+            if (objData.type === '3DText') {
+                mesh.userData.text = objData.text; // Store text for comparison
+            }
+
 
             mesh.position.set(...objData.position);
             mesh.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
@@ -296,7 +317,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-  }, [isClient, sceneObjects, sceneRef, font]); // Re-run if font loads or sceneObjects change
+  }, [isClient, sceneObjects, sceneRef, font]); 
 
 
   useEffect(() => {
