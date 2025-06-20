@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -10,24 +11,54 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Trash2, Copy, Plus, Box, CircleDot, Square, Triangle, Type, DatabaseIcon } from "lucide-react"; // Using CircleDot as placeholder for Sphere, DatabaseIcon for Cylinder
+import { Trash2, Copy, Plus, Box, CircleDot, Square, Triangle, Type, DatabaseIcon } from "lucide-react"; 
+import { useToast } from "@/hooks/use-toast";
 
 const ToolbarRight: React.FC = () => {
+  const { toast } = useToast();
+
   const shapes = [
     { name: "Cube", icon: <Box className="w-4 h-4 mr-2" /> },
-    { name: "Sphere", icon: <CircleDot className="w-4 h-4 mr-2" /> }, // Placeholder for Sphere
+    { name: "Sphere", icon: <CircleDot className="w-4 h-4 mr-2" /> },
     { name: "Plane", icon: <Square className="w-4 h-4 mr-2" /> },
-    { name: "Pyramid", icon: <Triangle className="w-4 h-4 mr-2" /> }, // Placeholder for Pyramid
-    { name: "Cylinder", icon: <DatabaseIcon className="w-4 h-4 mr-2" /> }, // Placeholder for Cylinder
+    { name: "Pyramid", icon: <Triangle className="w-4 h-4 mr-2" /> }, 
+    { name: "Cylinder", icon: <DatabaseIcon className="w-4 h-4 mr-2" /> }, 
     { name: "3D Text", icon: <Type className="w-4 h-4 mr-2" /> },
   ];
+
+  const handleDeleteObject = () => {
+    toast({
+      title: "Action: Delete Object",
+      description: "Delete object button clicked.",
+    });
+  };
+
+  const handleCopyObject = () => {
+    toast({
+      title: "Action: Copy Object",
+      description: "Copy object button clicked.",
+    });
+  };
+
+  const handleAddShape = (shapeName: string) => {
+    toast({
+      title: "Action: Add Shape",
+      description: `${shapeName} added to scene.`,
+    });
+  };
 
   return (
     <TooltipProvider delayDuration={100}>
       <div className="flex flex-col items-center space-y-3">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-full w-12 h-12 hover:bg-destructive/20 hover:text-destructive transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110" aria-label="Delete Object (Delete)">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full w-12 h-12 hover:bg-destructive/20 hover:text-destructive transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110" 
+              aria-label="Delete Object (Delete)"
+              onClick={handleDeleteObject}
+            >
               <Trash2 className="w-5 h-5" />
             </Button>
           </TooltipTrigger>
@@ -38,7 +69,13 @@ const ToolbarRight: React.FC = () => {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-full w-12 h-12 hover:bg-accent/20 transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110" aria-label="Copy Object (Ctrl+C)">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full w-12 h-12 hover:bg-accent/20 transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110" 
+              aria-label="Copy Object (Ctrl+D)"
+              onClick={handleCopyObject}
+            >
               <Copy className="w-5 h-5" />
             </Button>
           </TooltipTrigger>
@@ -57,13 +94,13 @@ const ToolbarRight: React.FC = () => {
             <DropdownMenuLabel>Add Shape</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {shapes.map((shape) => (
-              <DropdownMenuItem key={shape.name} className="cursor-pointer">
+              <DropdownMenuItem key={shape.name} className="cursor-pointer" onSelect={() => handleAddShape(shape.name)}>
                 {shape.icon}
                 <span>{shape.name}</span>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onSelect={() => handleAddShape("More...")}>
               <Plus className="w-4 h-4 mr-2" />
               <span>More...</span>
             </DropdownMenuItem>
