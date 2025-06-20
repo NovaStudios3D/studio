@@ -3,9 +3,9 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, CircleDot, Plane, Pyramid, Cylinder, Camera as CameraIcon } from "lucide-react";
+import { Menu, Box, CircleDot, Plane as PlaneIconLucide, Pyramid, Cylinder } from "lucide-react"; // Renamed Plane to avoid conflict
 import React from "react";
-import type { SceneObject } from "@/app/page"; 
+import type { SceneObject } from "@/app/page";
 
 interface ObjectListPanelProps {
   objects: SceneObject[];
@@ -20,15 +20,13 @@ const getIconForType = (type: SceneObject['type']) => {
     case "Sphere":
       return <CircleDot className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Plane":
-      return <Plane className="w-4 h-4 mr-2 text-muted-foreground" />;
+      return <PlaneIconLucide className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Pyramid":
       return <Pyramid className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Cylinder":
       return <Cylinder className="w-4 h-4 mr-2 text-muted-foreground" />;
-    case "Camera":
-      return <CameraIcon className="w-4 h-4 mr-2 text-muted-foreground" />;
     // case "3DText":
-    //   return <Type className="w-4 h-4 mr-2 text-muted-foreground" />;
+    //   return <Type className="w-4 h-4 mr-2 text-muted-foreground" />; // Type is not used from lucide-react to avoid conflicts
     default:
       return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
   }

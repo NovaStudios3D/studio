@@ -13,28 +13,25 @@ interface ThreeSceneProps {
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
   activeTool: ActiveTool;
-  activeSceneCameraId: string | null;
 }
 
-const ThreeScene: React.FC<ThreeSceneProps> = ({ 
-  sceneObjects, 
+const ThreeScene: React.FC<ThreeSceneProps> = ({
+  sceneObjects,
   setSceneObjects,
-  selectedObjectId, 
-  setSelectedObjectId, 
-  activeTool,
-  activeSceneCameraId
+  selectedObjectId,
+  setSelectedObjectId,
+  activeTool
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
-  
+
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const editorCameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null); // Single editor camera
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const editorControlsRef = useRef<OrbitControls | null>(null);
+  const orbitControlsRef = useRef<OrbitControls | null>(null);
   const transformControlsRef = useRef<TransformControls | null>(null);
-  
+
   const threeObjectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
-  const cameraHelpersRef = useRef<Map<string, THREE.CameraHelper>>(new Map());
 
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const pointerRef = useRef<THREE.Vector2 | null>(null);
@@ -68,9 +65,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     sceneRef.current = new THREE.Scene();
     sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#f0f0f0');
 
-    editorCameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
-    editorCameraRef.current.position.set(5, 5, 5);
-    editorCameraRef.current.lookAt(0,0,0);
+    cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
+    cameraRef.current.position.set(5, 5, 5);
+    cameraRef.current.lookAt(0,0,0);
 
 
     rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
@@ -79,16 +76,16 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     rendererRef.current.shadowMap.enabled = true;
     currentMount.appendChild(rendererRef.current.domElement);
 
-    editorControlsRef.current = new OrbitControls(editorCameraRef.current, rendererRef.current.domElement);
-    editorControlsRef.current.enableDamping = true;
-    editorControlsRef.current.dampingFactor = 0.05;
-    
-    transformControlsRef.current = new TransformControls(editorCameraRef.current, rendererRef.current.domElement);
+    orbitControlsRef.current = new OrbitControls(cameraRef.current, rendererRef.current.domElement);
+    orbitControlsRef.current.enableDamping = true;
+    orbitControlsRef.current.dampingFactor = 0.05;
+
+    transformControlsRef.current = new TransformControls(cameraRef.current, rendererRef.current.domElement);
     sceneRef.current.add(transformControlsRef.current);
-    
+
     transformControlsRef.current.addEventListener('dragging-changed', (event) => {
-        if (editorControlsRef.current && editorCameraRef.current === (rendererRef.current as any)?.camera ) { // Check if editor camera is active
-            editorControlsRef.current.enabled = !event.value;
+        if (orbitControlsRef.current) {
+            orbitControlsRef.current.enabled = !event.value;
         }
     });
     transformControlsRef.current.addEventListener('objectChange', () => {
@@ -96,11 +93,12 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             updateSceneObjectFromTransform(transformControlsRef.current.object);
         }
     });
-    
+
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
-    const gridHelper = new THREE.GridHelper(200, 40, 0xaaaaaa, 0xcccccc);
+    // Significantly larger grid
+    const gridHelper = new THREE.GridHelper(200, 40, 0xaaaaaa, 0xbbbbbb); // size, divisions, colorCenterLine, colorGrid
     sceneRef.current.add(gridHelper);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
@@ -114,76 +112,41 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     directionalLight.shadow.camera.near = 0.5;
     directionalLight.shadow.camera.far = 50;
     sceneRef.current.add(directionalLight);
-    
-    const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.ShadowMaterial({ opacity: 0.3 }));
+
+    const groundPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200), // Match GridHelper size
+      new THREE.ShadowMaterial({ opacity: 0.3, color: 0x999999 })
+    );
     groundPlane.rotation.x = -Math.PI / 2;
-    groundPlane.position.y = -0.01;
+    groundPlane.position.y = -0.01; // Slightly below the grid lines
     groundPlane.receiveShadow = true;
     sceneRef.current.add(groundPlane);
 
+
     const animate = () => {
       requestAnimationFrame(animate);
-      
-      let cameraToRender: THREE.PerspectiveCamera | null = null;
-
-      if (activeSceneCameraId && threeObjectsRef.current.has(activeSceneCameraId)) {
-          const cameraObjectGroup = threeObjectsRef.current.get(activeSceneCameraId);
-          const sceneCam = cameraObjectGroup?.children.find(child => child instanceof THREE.PerspectiveCamera) as THREE.PerspectiveCamera | undefined;
-          if (sceneCam) {
-              cameraToRender = sceneCam;
-          }
+      if (orbitControlsRef.current) {
+        orbitControlsRef.current.update();
       }
-      
-      if (!cameraToRender && editorCameraRef.current) {
-          cameraToRender = editorCameraRef.current;
-      }
-
-      if (!cameraToRender) {
-          return; 
-      }
-      
-      // Update orbit controls only if the editor camera is the one being used for rendering
-      if (cameraToRender === editorCameraRef.current && editorControlsRef.current) {
-        editorControlsRef.current.update();
-      }
-      
-      if (sceneRef.current && rendererRef.current) {
-          cameraHelpersRef.current.forEach(helper => helper.update());
-          // Detach transform controls from the camera if we're looking through it.
-          // The main useEffect for controls will handle re-attaching if needed.
-          if (transformControlsRef.current && transformControlsRef.current.object === cameraToRender?.parent) {
-            // transformControlsRef.current.detach(); // This might be too aggressive
-          }
-          rendererRef.current.render(sceneRef.current, cameraToRender);
+      if (sceneRef.current && cameraRef.current && rendererRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
     };
     animate();
 
     const handleResize = () => {
-      if (rendererRef.current && editorCameraRef.current && currentMount) {
+      if (rendererRef.current && cameraRef.current && currentMount) {
         const width = currentMount.clientWidth;
         const height = currentMount.clientHeight;
-        
         rendererRef.current.setSize(width, height);
-        
-        editorCameraRef.current.aspect = width / height;
-        editorCameraRef.current.updateProjectionMatrix();
-
-        threeObjectsRef.current.forEach(obj => {
-          if (obj.userData.type === 'Camera') {
-            const sceneCam = obj.children.find(child => child instanceof THREE.PerspectiveCamera) as THREE.PerspectiveCamera | undefined;
-            if (sceneCam) {
-              sceneCam.aspect = width / height;
-              sceneCam.updateProjectionMatrix();
-            }
-          }
-        });
+        cameraRef.current.aspect = width / height;
+        cameraRef.current.updateProjectionMatrix();
       }
     };
     window.addEventListener('resize', handleResize);
-    handleResize(); // Initial call
+    handleResize();
 
-    const observer = new MutationObserver(() => { 
+    const observer = new MutationObserver(() => {
       if(sceneRef.current) {
         sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#f0f0f0');
       }
@@ -191,41 +154,24 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
 
     const onPointerDown = ( event: PointerEvent ) => {
-        if (!mountRef.current || !raycasterRef.current || !pointerRef.current || transformControlsRef.current?.dragging) return;
-        
+        if (!mountRef.current || !raycasterRef.current || !pointerRef.current || !cameraRef.current || transformControlsRef.current?.dragging) return;
+
         const rect = mountRef.current.getBoundingClientRect();
         pointerRef.current.x = ( (event.clientX - rect.left) / currentMount.clientWidth ) * 2 - 1;
         pointerRef.current.y = - ( (event.clientY - rect.top) / currentMount.clientHeight ) * 2 + 1;
 
-        let cameraForRaycasting: THREE.PerspectiveCamera | null = editorCameraRef.current;
-        if (activeSceneCameraId && threeObjectsRef.current.has(activeSceneCameraId)) {
-            const cameraObjectGroup = threeObjectsRef.current.get(activeSceneCameraId);
-            const sceneCam = cameraObjectGroup?.children.find(c => c instanceof THREE.PerspectiveCamera) as THREE.PerspectiveCamera | undefined;
-            if (sceneCam) cameraForRaycasting = sceneCam;
-        }
-        if (!cameraForRaycasting) return;
+        raycasterRef.current.setFromCamera( pointerRef.current, cameraRef.current );
 
-
-        raycasterRef.current.setFromCamera( pointerRef.current, cameraForRaycasting );
-        
-        const allSelectableObjects: THREE.Object3D[] = [];
-        threeObjectsRef.current.forEach(obj => {
-            if (obj.userData.type === 'Camera') {
-                const visualProxy = obj.children.find(child => child.name === 'cameraVisualProxy');
-                if (visualProxy) allSelectableObjects.push(visualProxy);
-            } else {
-                allSelectableObjects.push(obj);
-            }
-        });
-
+        const allSelectableObjects = Array.from(threeObjectsRef.current.values());
         const intersects = raycasterRef.current.intersectObjects( allSelectableObjects, true );
 
         if ( intersects.length > 0 ) {
             let intersectedObject = intersects[0].object;
             while(intersectedObject.parent && !intersectedObject.userData.id) {
-                if (intersectedObject.parent === sceneRef.current) break;
+                if (intersectedObject.parent === sceneRef.current) break; // Should not happen with current structure
                 intersectedObject = intersectedObject.parent;
             }
+
             if (intersectedObject.userData.id) {
                  setSelectedObjectId(intersectedObject.userData.id);
             } else {
@@ -241,33 +187,18 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       window.removeEventListener('resize', handleResize);
       observer.disconnect();
       currentMount.removeEventListener('pointerdown', onPointerDown);
-      // transformControlsRef.current?.removeEventListener('objectChange', updateSceneObjectFromTransform); // already handled by direct call
       transformControlsRef.current?.dispose();
-      editorControlsRef.current?.dispose();
-      
-      threeObjectsRef.current.forEach((obj, id) => {
+      orbitControlsRef.current?.dispose();
+
+      threeObjectsRef.current.forEach((obj) => {
         sceneRef.current?.remove(obj);
         if (obj instanceof THREE.Mesh) {
           obj.geometry.dispose();
           if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
           else if (obj.material) obj.material.dispose();
-        } else if (obj instanceof THREE.Group) { 
-            obj.children.forEach(child => {
-                if (child instanceof THREE.Mesh) {
-                    child.geometry.dispose();
-                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-                    else if (child.material) child.material.dispose();
-                }
-            });
-        }
-        const helper = cameraHelpersRef.current.get(id);
-        if (helper) {
-            sceneRef.current?.remove(helper);
-            helper.dispose();
         }
       });
       threeObjectsRef.current.clear();
-      cameraHelpersRef.current.clear();
 
       if (rendererRef.current?.domElement && currentMount.contains(rendererRef.current.domElement)) {
          currentMount.removeChild(rendererRef.current.domElement);
@@ -276,7 +207,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       sceneRef.current?.clear();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, setSelectedObjectId, updateSceneObjectFromTransform]); // activeSceneCameraId removed as animate loop handles it
+  }, [isClient, setSelectedObjectId, updateSceneObjectFromTransform]);
 
 
   // Update THREE.js objects based on sceneObjects prop
@@ -292,159 +223,86 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                 obj.geometry.dispose();
                 if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
                 else if (obj.material) obj.material.dispose();
-            } else if (obj instanceof THREE.Group) {
-                 obj.children.forEach(child => {
-                    if (child instanceof THREE.Mesh) { 
-                        child.geometry.dispose();
-                        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-                        else if (child.material) child.material.dispose();
-                    }
-                 });
             }
             threeObjectsRef.current.delete(id);
-
-            const helper = cameraHelpersRef.current.get(id);
-            if (helper) {
-                sceneRef.current?.remove(helper);
-                helper.dispose();
-                cameraHelpersRef.current.delete(id);
-            }
         }
     });
-    
+
     sceneObjects.forEach(objData => {
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
 
-      if (existingThreeObject) { 
+      if (existingThreeObject) {
         existingThreeObject.position.set(...objData.position);
         existingThreeObject.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
         existingThreeObject.scale.set(...objData.scale);
 
-        if (objData.type === 'Camera') {
-            const cam = existingThreeObject.children.find(c => c instanceof THREE.PerspectiveCamera) as THREE.PerspectiveCamera;
-            if (cam && objData.fov && cam.fov !== objData.fov) {
-              cam.fov = objData.fov;
-              cam.updateProjectionMatrix();
-            }
-            const helper = cameraHelpersRef.current.get(objData.id);
-            helper?.update();
-        } else if (existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
+        if (existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
             existingThreeObject.material.color.set(objData.color);
         }
-      } else { 
-        let newThreeObject: THREE.Object3D;
-        if (objData.type === 'Camera') {
-            const cameraGroup = new THREE.Group();
-            cameraGroup.userData = { id: objData.id, type: 'Camera' };
-
-            const newCamera = new THREE.PerspectiveCamera(objData.fov || 50, (mountRef.current?.clientWidth || 16) / (mountRef.current?.clientHeight || 9) , 0.1, 1000);
-            cameraGroup.add(newCamera);
-            
-            const proxyGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.15); // Made smaller
-            const proxyMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, wireframe: false, transparent: true, opacity: 0.5 });
-            const proxyMesh = new THREE.Mesh(proxyGeometry, proxyMaterial);
-            proxyMesh.name = "cameraVisualProxy";
-            cameraGroup.add(proxyMesh);
-            
-            newThreeObject = cameraGroup;
-            newThreeObject.position.set(...objData.position);
-            newThreeObject.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
-            newThreeObject.scale.set(...objData.scale); // Scale for group might affect helper too
-            
-            threeObjectsRef.current.set(objData.id, newThreeObject);
-            sceneRef.current?.add(newThreeObject);
-
-            const cameraHelper = new THREE.CameraHelper(newCamera);
-            sceneRef.current?.add(cameraHelper);
-            cameraHelpersRef.current.set(objData.id, cameraHelper);
-
-        } else {
-            let geometry: THREE.BufferGeometry;
-            const material = new THREE.MeshStandardMaterial({ color: objData.color, metalness: 0.3, roughness: 0.6 });
-            switch (objData.type) {
-              case 'Sphere': geometry = new THREE.SphereGeometry(0.5, 32, 16); break;
-              case 'Plane': geometry = new THREE.PlaneGeometry(1, 1); break;
-              case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
-              case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
-              case 'Cube': default: geometry = new THREE.BoxGeometry(1, 1, 1); break;
-            }
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            mesh.userData = { id: objData.id, type: objData.type };
-            newThreeObject = mesh;
-
-            newThreeObject.position.set(...objData.position);
-            newThreeObject.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
-            newThreeObject.scale.set(...objData.scale);
-
-            threeObjectsRef.current.set(objData.id, newThreeObject);
-            sceneRef.current?.add(newThreeObject);
+      } else {
+        let geometry: THREE.BufferGeometry;
+        const material = new THREE.MeshStandardMaterial({ color: objData.color, metalness: 0.3, roughness: 0.6 });
+        switch (objData.type) {
+          case 'Sphere': geometry = new THREE.SphereGeometry(0.5, 32, 16); break;
+          case 'Plane': geometry = new THREE.PlaneGeometry(1, 1); break;
+          case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
+          case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
+          case 'Cube': default: geometry = new THREE.BoxGeometry(1, 1, 1); break;
         }
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData = { id: objData.id, type: objData.type }; // Store original type
+
+        mesh.position.set(...objData.position);
+        mesh.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
+        mesh.scale.set(...objData.scale);
+
+        threeObjectsRef.current.set(objData.id, mesh);
+        sceneRef.current?.add(mesh);
       }
     });
-  }, [isClient, sceneObjects, sceneRef, mountRef]);
+  }, [isClient, sceneObjects, sceneRef]);
 
 
-  // Handle TransformControls attachment and mode, and editor controls state
+  // Handle TransformControls attachment and mode
   useEffect(() => {
-    if (!isClient || !transformControlsRef.current || !editorControlsRef.current || !sceneRef.current || !editorCameraRef.current) return;
+    if (!isClient || !transformControlsRef.current || !orbitControlsRef.current || !cameraRef.current) return;
 
     const tc = transformControlsRef.current;
-    const orbitControls = editorControlsRef.current;
+    const orbitControls = orbitControlsRef.current;
 
-    let isViewingFromSceneCam = false;
-    if (activeSceneCameraId) {
-        const sceneCamObject = threeObjectsRef.current.get(activeSceneCameraId);
-        if (sceneCamObject?.children.find(c => c instanceof THREE.PerspectiveCamera)) {
-            isViewingFromSceneCam = true;
-        }
-    }
-    
-    // Update TransformControls camera based on current view
-    const currentRenderingCamera = isViewingFromSceneCam
-      ? threeObjectsRef.current.get(activeSceneCameraId!)?.children.find(c => c instanceof THREE.PerspectiveCamera) as THREE.PerspectiveCamera
-      : editorCameraRef.current;
-
-    if (tc.camera !== currentRenderingCamera && currentRenderingCamera) {
-        tc.camera = currentRenderingCamera;
-    }
-
-
-    if (isViewingFromSceneCam) {
-        orbitControls.enabled = false;
-    } else {
-        orbitControls.enabled = !tc.dragging;
+    // Ensure TransformControls always uses the main editor camera
+    if (tc.camera !== cameraRef.current) {
+      tc.camera = cameraRef.current;
     }
     
     const selectedObject3D = selectedObjectId ? threeObjectsRef.current.get(selectedObjectId) : null;
 
-    if (selectedObject3D && activeTool && selectedObjectId !== activeSceneCameraId) {
+    if (selectedObject3D && activeTool) {
         if (tc.object !== selectedObject3D) {
             tc.attach(selectedObject3D);
         }
-        
         if (activeTool === 'Move' && tc.mode !== 'translate') { tc.setMode('translate'); }
         else if (activeTool === 'Rotate' && tc.mode !== 'rotate') { tc.setMode('rotate'); }
         else if (activeTool === 'Scale' && tc.mode !== 'scale') { tc.setMode('scale'); }
-
         tc.visible = true;
         tc.enabled = true;
+        orbitControls.enabled = !tc.dragging; // Disable orbit while transforming
     } else {
         if (tc.object) tc.detach();
         tc.visible = false;
         tc.enabled = false;
+        orbitControls.enabled = true; // Re-enable orbit controls
     }
-  }, [isClient, selectedObjectId, activeTool, activeSceneCameraId, sceneObjects]);
+  }, [isClient, selectedObjectId, activeTool, sceneObjects]); // sceneObjects to re-evaluate if selected obj changes
 
 
   if (!isClient) {
     return <div ref={mountRef} className="w-full h-full bg-muted flex items-center justify-center"><p>Loading 3D View...</p></div>;
   }
-  
+
   return <div ref={mountRef} className="w-full h-full" aria-label="3D Modeling Viewport" />;
 };
 
 export default ThreeScene;
-
-    
