@@ -64,7 +64,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="default"
-                  className="rounded-full w-12 h-12 p-0 bg-accent hover:bg-accent/90 text-accent-foreground shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110"
+                  className="rounded-full w-12 h-12 p-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110"
                   aria-label="Add new shape"
                 >
                   <Plus className="w-6 h-6" />
@@ -88,24 +88,31 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
         </DropdownMenu>
 
         {/* Main Tools: Move, Rotate, Scale */}
-        {mainTools.map((tool) => (
-          <Tooltip key={tool.name}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${activeTool === tool.name ? 'ring-2 ring-accent ring-offset-background ring-offset-2' : ''}`}
-                onClick={() => setActiveTool(tool.name)}
-                aria-label={tool.ariaLabel}
-              >
-                {tool.icon}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>{tool.ariaLabel}</p>
-            </TooltipContent>
-          </Tooltip>
-        ))}
+        {mainTools.map((tool) => {
+          let toolSpecificClass = 'hover:bg-accent/20'; // Default hover for inactive tools
+          if (activeTool === tool.name) {
+            // Active tool: blue ring, no orange hover from this specific class
+            toolSpecificClass = 'ring-2 ring-primary ring-offset-background ring-offset-2'; 
+          }
+          return (
+            <Tooltip key={tool.name}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${toolSpecificClass}`}
+                  onClick={() => setActiveTool(tool.name)}
+                  aria-label={tool.ariaLabel}
+                >
+                  {tool.icon}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{tool.ariaLabel}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
         
         <div className="border-t border-border w-full my-1"></div>
 
