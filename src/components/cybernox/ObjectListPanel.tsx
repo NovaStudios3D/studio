@@ -1,25 +1,38 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box } from "lucide-react";
+import { Menu, Box, CircleDot, Plane, Pyramid, Cylinder, Type } from "lucide-react"; // Changed Sphere to CircleDot
 import React from "react";
+import type { SceneObject } from "@/app/page"; // Import type
 
-interface SceneObject {
-  id: string;
-  name: string;
-  type: string; // e.g., 'Cube', 'Sphere'
+interface ObjectListPanelProps {
+  objects: SceneObject[];
+  selectedObjectId: string | null;
+  onSelectObject: (id: string) => void;
 }
 
-const ObjectListPanel: React.FC = () => {
-  // Placeholder for actual scene objects
-  const [objects, setObjects] = React.useState<SceneObject[]>([
-    { id: "1", name: "Cube 1", type: "Cube" },
-    { id: "2", name: "Light Source", type: "Light" },
-    { id: "3", name: "Camera", type: "Camera" },
-  ]);
-  const [selectedObjectId, setSelectedObjectId] = React.useState<string | null>("1");
+const getIconForType = (type: SceneObject['type']) => {
+  switch (type) {
+    case "Cube":
+      return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Sphere":
+      return <CircleDot className="w-4 h-4 mr-2 text-muted-foreground" />; // Changed Sphere to CircleDot
+    case "Plane":
+      return <Plane className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Pyramid":
+      return <Pyramid className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Cylinder":
+      return <Cylinder className="w-4 h-4 mr-2 text-muted-foreground" />;
+    // case "3DText":
+    //   return <Type className="w-4 h-4 mr-2 text-muted-foreground" />;
+    default:
+      return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
+  }
+};
 
+const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObjectId, onSelectObject }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-border">
@@ -29,24 +42,28 @@ const ObjectListPanel: React.FC = () => {
         </Button>
       </div>
       <ScrollArea className="flex-1">
-        <ul className="p-2 space-y-1">
-          {objects.map((obj) => (
-            <li key={obj.id}>
-              <Button
-                variant={selectedObjectId === obj.id ? "secondary" : "ghost"}
-                className={`w-full justify-start h-auto py-2 px-3 ${selectedObjectId === obj.id ? 'font-semibold' : ''}`}
-                onClick={() => setSelectedObjectId(obj.id)}
-                aria-current={selectedObjectId === obj.id ? "page" : undefined}
-              >
-                <Box className="w-4 h-4 mr-2 text-muted-foreground" /> {/* Generic icon */}
-                <span className="truncate">{obj.name}</span>
-              </Button>
-            </li>
-          ))}
-        </ul>
+        {objects.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground text-center">No objects in scene.</p>
+        ) : (
+          <ul className="p-2 space-y-1">
+            {objects.map((obj) => (
+              <li key={obj.id}>
+                <Button
+                  variant={selectedObjectId === obj.id ? "secondary" : "ghost"}
+                  className={`w-full justify-start h-auto py-2 px-3 ${selectedObjectId === obj.id ? 'font-semibold' : ''}`}
+                  onClick={() => onSelectObject(obj.id)}
+                  aria-current={selectedObjectId === obj.id ? "page" : undefined}
+                >
+                  {getIconForType(obj.type)}
+                  <span className="truncate">{obj.name}</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </ScrollArea>
       <div className="p-3 border-t border-border text-xs text-muted-foreground">
-        {objects.length} objects in scene.
+        {objects.length} object{objects.length !== 1 ? 's' : ''} in scene.
       </div>
     </div>
   );
