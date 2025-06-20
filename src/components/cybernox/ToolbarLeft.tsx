@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Move, Orbit, Maximize2, Trash2, Copy, Plus, Box, CircleDot, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide, Eye, EyeOff } from "lucide-react";
+import { Move, RotateCw, Maximize2, Trash2, Copy, Plus, Box, CircleDot, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide, Eye, EyeOff } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -36,7 +36,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
 }) => {
   const mainTools = [
     { name: "Move" as ActiveTool, icon: <Move className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
-    { name: "Rotate" as ActiveTool, icon: <Orbit className="w-5 h-5" />, ariaLabel: "Rotate Tool (R)" },
+    { name: "Rotate" as ActiveTool, icon: <RotateCw className="w-5 h-5" />, ariaLabel: "Rotate Tool (R)" },
     { name: "Scale" as ActiveTool, icon: <Maximize2 className="w-5 h-5" />, ariaLabel: "Scale Tool (S)" },
   ];
 
@@ -90,18 +90,15 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
         {/* Main Tools: Move, Rotate, Scale */}
         {mainTools.map((tool) => {
           const isActive = activeTool === tool.name;
-          let toolSpecificClass = 'hover:bg-accent/20'; // Default hover for inactive tools
-          if (isActive) {
-            // Active tool: blue ring, no orange hover from this specific class
-            toolSpecificClass = 'ring-2 ring-primary ring-offset-background ring-offset-2';
-          }
+          let toolSpecificClass = isActive ? 'ring-2 ring-primary ring-offset-background ring-offset-2' : 'hover:bg-accent/20';
+          
           return (
             <Tooltip key={tool.name}>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${isActive ? '' : 'hover:bg-accent/20'} ${toolSpecificClass}`}
+                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${toolSpecificClass}`}
                   onClick={() => setActiveTool(tool.name)}
                   aria-label={tool.ariaLabel}
                   aria-pressed={isActive}
