@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Move, Rotate3d, Scaling, Trash2, Copy, Plus, Box, CircleDot, Square, Triangle, Type, DatabaseIcon } from "lucide-react";
+import { Move, Rotate3d, Scaling, Trash2, Copy, Plus, Box, CircleDot, Square, Triangle, Type, DatabaseIcon, Camera, LogIn, LogOut } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page"; // Import types
 
 interface ToolbarLeftProps {
@@ -21,6 +21,9 @@ interface ToolbarLeftProps {
   onAddShape: (type: SceneObject['type']) => void;
   onDeleteObject: () => void;
   onCopyObject: () => void;
+  onToggleCameraView: () => void;
+  isCameraSelected: boolean;
+  isViewingFromSceneCamera: boolean;
 }
 
 const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
@@ -29,6 +32,9 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onAddShape,
   onDeleteObject,
   onCopyObject,
+  onToggleCameraView,
+  isCameraSelected,
+  isViewingFromSceneCamera,
 }) => {
   const mainTools = [
     { name: "Move" as ActiveTool, icon: <Move className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
@@ -47,8 +53,13 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
     { name: "Plane", icon: <Square className="w-4 h-4 mr-2" /> },
     { name: "Pyramid", icon: <Triangle className="w-4 h-4 mr-2" /> },
     { name: "Cylinder", icon: <DatabaseIcon className="w-4 h-4 mr-2" /> },
-    // { name: "3DText", icon: <Type className="w-4 h-4 mr-2" /> }, // 3D Text might require more complex setup
+    { name: "Camera", icon: <Camera className="w-4 h-4 mr-2" /> },
+    // { name: "3DText", icon: <Type className="w-4 h-4 mr-2" /> }, 
   ];
+
+  const canToggleCameraView = isCameraSelected || isViewingFromSceneCamera;
+  const toggleCameraViewIcon = isViewingFromSceneCamera ? <LogOut className="w-5 h-5" /> : <LogIn className="w-5 h-5" />;
+  const toggleCameraViewLabel = isViewingFromSceneCamera ? "Exit Camera View" : "View From Selected Camera";
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -98,6 +109,26 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             </TooltipContent>
           </Tooltip>
         ))}
+
+        {/* Camera View Toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className={`rounded-full w-12 h-12 transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${canToggleCameraView ? 'hover:bg-accent/20' : 'opacity-50 cursor-not-allowed'}`}
+              onClick={onToggleCameraView}
+              disabled={!canToggleCameraView}
+              aria-label={toggleCameraViewLabel}
+            >
+              {toggleCameraViewIcon}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{toggleCameraViewLabel}</p>
+          </TooltipContent>
+        </Tooltip>
+
 
         {/* Action Tools: Copy, Delete */}
         {actionTools.map((tool) => (
