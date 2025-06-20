@@ -78,10 +78,12 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     const currentMount = mountRef.current;
 
     sceneRef.current = new THREE.Scene();
-    sceneRef.current.background = new THREE.Color(0x101010); // Dark sky color
+    const editorBgColor = getComputedStyle(currentMount).backgroundColor;
+    sceneRef.current.background = new THREE.Color(editorBgColor || 'hsl(var(--background))');
+
 
     cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
-    cameraRef.current.position.set(5, 5, 15); 
+    cameraRef.current.position.set(5, 5, 15);
     cameraRef.current.lookAt(0,0,0);
 
     rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
@@ -111,7 +113,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     pointerRef.current = new THREE.Vector2();
 
     const gridHelper = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff); // White grid lines
-    gridHelper.material.opacity = 0.2;
+    gridHelper.material.opacity = 0.5; // Adjust for less starkness
     gridHelper.material.transparent = true;
     sceneRef.current.add(gridHelper);
 
@@ -128,10 +130,10 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     groundPlaneRef.current = new THREE.Mesh(
       new THREE.PlaneGeometry(1000, 1000),
-      new THREE.ShadowMaterial({ color: 0x080808, opacity: 0.3 }) 
+      new THREE.ShadowMaterial({ color: 0x080808, opacity: 0.3 })
     );
     groundPlaneRef.current.rotation.x = -Math.PI / 2;
-    groundPlaneRef.current.position.y = -0.01; 
+    groundPlaneRef.current.position.y = -0.01; // Slightly below the grid to prevent z-fighting
     groundPlaneRef.current.receiveShadow = true;
     sceneRef.current.add(groundPlaneRef.current);
 
@@ -151,10 +153,14 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         rendererRef.current.setSize(width, height);
         cameraRef.current.aspect = width / height;
         cameraRef.current.updateProjectionMatrix();
+        const newEditorBgColor = getComputedStyle(currentMount).backgroundColor;
+        if (sceneRef.current) {
+          sceneRef.current.background = new THREE.Color(newEditorBgColor || 'hsl(var(--background))');
+        }
       }
     };
     window.addEventListener('resize', handleResize);
-    handleResize(); 
+    handleResize();
 
     const onPointerDown = ( event: PointerEvent ) => {
         if (!mountRef.current || !raycasterRef.current || !pointerRef.current || !cameraRef.current || transformControlsRef.current?.dragging) return;
@@ -167,7 +173,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         if ( intersects.length > 0 ) {
             let intersectedObject = intersects[0].object;
             while(intersectedObject.parent && !intersectedObject.userData.id) {
-                if (intersectedObject.parent === sceneRef.current) break; 
+                if (intersectedObject.parent === sceneRef.current) break;
                 intersectedObject = intersectedObject.parent;
             }
             if (intersectedObject.userData.id) {
@@ -219,10 +225,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     threeObjectsRef.current.forEach(obj => {
       if (obj instanceof THREE.Mesh) {
         obj.castShadow = showShadows;
-        obj.receiveShadow = showShadows; // Most objects might not need to receive, but doesn't hurt
+        obj.receiveShadow = showShadows;
       }
     });
-    // Force re-render if scene exists
     if (sceneRef.current && cameraRef.current && rendererRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current);
     }
@@ -254,12 +259,12 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       const is3DText = objData.type === '3DText';
       const material = existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial
         ? existingThreeObject.material
-        : new THREE.MeshStandardMaterial({ 
-            color: objData.color, 
-            metalness: is3DText ? 0.0 : 0.3, 
-            roughness: is3DText ? 0.1 : 0.6 
+        : new THREE.MeshStandardMaterial({
+            color: objData.color,
+            metalness: is3DText ? 0.0 : 0.3,
+            roughness: is3DText ? 0.1 : 0.6
           });
-      
+
       material.color.set(objData.color);
       if (is3DText) {
         material.metalness = 0.0;
@@ -290,19 +295,19 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                  mesh.geometry.dispose();
                  if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose()); else mesh.material.dispose();
                  threeObjectsRef.current.delete(objData.id);
-                 existingThreeObject = undefined; 
+                 existingThreeObject = undefined;
             }
         }
       }
-      
-      if (!existingThreeObject) { 
+
+      if (!existingThreeObject) {
         let geometry: THREE.BufferGeometry | undefined;
         if (objData.type === '3DText') {
           if (font && objData.text) {
             const textGeo = new TextGeometry(objData.text, {
               font: font,
-              size: 1.5, 
-              height: 0.4, 
+              size: 1.5,
+              height: 0.4,
               curveSegments: 12,
               bevelEnabled: true,
               bevelThickness: 0.08,
@@ -312,13 +317,15 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             });
             textGeo.computeBoundingBox();
             if (textGeo.boundingBox) {
-                const centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
-                textGeo.translate(centerOffset, 0, 0); 
+                const xOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+                const yOffset = -0.5 * (textGeo.boundingBox.max.y - textGeo.boundingBox.min.y);
+                const zOffset = -0.5 * (textGeo.boundingBox.max.z - textGeo.boundingBox.min.z);
+                textGeo.translate(xOffset, yOffset, zOffset);
             }
             geometry = textGeo;
           } else {
             console.warn("3DText object: font not loaded or no text. Using placeholder.", objData.name);
-            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); 
+            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
           }
         } else {
             switch (objData.type) {
@@ -329,14 +336,14 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
               case 'Cube': default: geometry = new THREE.BoxGeometry(1, 1, 1); break;
             }
         }
-        
+
         if (geometry) {
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = showShadows;
             mesh.receiveShadow = showShadows;
             mesh.userData = { id: objData.id, type: objData.type };
             if (objData.type === '3DText') {
-                mesh.userData.text = objData.text; 
+                mesh.userData.text = objData.text;
             }
 
             mesh.position.set(...objData.position);
@@ -348,7 +355,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-  }, [isClient, sceneObjects, sceneRef, font, showShadows]); 
+  }, [isClient, sceneObjects, sceneRef, font, showShadows]);
 
 
   useEffect(() => {
@@ -387,3 +394,4 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 };
 
 export default ThreeScene;
+
