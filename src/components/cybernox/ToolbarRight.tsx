@@ -30,6 +30,7 @@ const ToolbarRight: React.FC = () => {
     toast({
       title: "Action: Delete Object",
       description: "Delete object button clicked.",
+      variant: "destructive",
     });
   };
 
