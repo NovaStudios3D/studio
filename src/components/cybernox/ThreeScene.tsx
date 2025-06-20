@@ -5,6 +5,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import type { SceneObject, ActiveTool } from '@/app/page';
 
 interface ThreeSceneProps {
@@ -15,6 +17,10 @@ interface ThreeSceneProps {
   activeTool: ActiveTool;
 }
 
+// Path to a font file (using Three.js examples CDN for convenience)
+const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json';
+
+
 const ThreeScene: React.FC<ThreeSceneProps> = ({
   sceneObjects,
   setSceneObjects,
@@ -24,9 +30,10 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
+  const [font, setFont] = useState<THREE.Font | null>(null);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null); // Single editor camera
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const orbitControlsRef = useRef<OrbitControls | null>(null);
   const transformControlsRef = useRef<TransformControls | null>(null);
@@ -38,6 +45,13 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
   useEffect(() => {
     setIsClient(true);
+    // Load font
+    const fontLoader = new FontLoader();
+    fontLoader.load(FONT_PATH, (loadedFont) => {
+      setFont(loadedFont);
+    }, undefined, (error) => {
+      console.error('FontLoader: Could not load font.', error);
+    });
   }, []);
 
   const updateSceneObjectFromTransform = useCallback((transformedObject: THREE.Object3D) => {
@@ -57,7 +71,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     );
   }, [setSceneObjects]);
 
-  // Initialize scene, camera, renderer, controls
   useEffect(() => {
     if (!isClient || !mountRef.current) return;
     const currentMount = mountRef.current;
@@ -66,9 +79,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#f0f0f0');
 
     cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
-    cameraRef.current.position.set(5, 5, 5);
+    cameraRef.current.position.set(5, 5, 15); // Adjusted camera position
     cameraRef.current.lookAt(0,0,0);
-
 
     rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
     rendererRef.current.setSize(currentMount.clientWidth, currentMount.clientHeight);
@@ -97,8 +109,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
-    // Significantly larger grid
-    const gridHelper = new THREE.GridHelper(200, 40, 0xaaaaaa, 0xbbbbbb); // size, divisions, colorCenterLine, colorGrid
+    const gridHelper = new THREE.GridHelper(1000, 100, 0xaaaaaa, 0xbbbbbb);
     sceneRef.current.add(gridHelper);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
@@ -114,20 +125,17 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     sceneRef.current.add(directionalLight);
 
     const groundPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(200, 200), // Match GridHelper size
+      new THREE.PlaneGeometry(1000, 1000),
       new THREE.ShadowMaterial({ opacity: 0.3, color: 0x999999 })
     );
     groundPlane.rotation.x = -Math.PI / 2;
-    groundPlane.position.y = -0.01; // Slightly below the grid lines
+    groundPlane.position.y = -0.01;
     groundPlane.receiveShadow = true;
     sceneRef.current.add(groundPlane);
 
-
     const animate = () => {
       requestAnimationFrame(animate);
-      if (orbitControlsRef.current) {
-        orbitControlsRef.current.update();
-      }
+      orbitControlsRef.current?.update();
       if (sceneRef.current && cameraRef.current && rendererRef.current) {
           rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
@@ -144,7 +152,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       }
     };
     window.addEventListener('resize', handleResize);
-    handleResize();
+    handleResize(); // Call once on init
 
     const observer = new MutationObserver(() => {
       if(sceneRef.current) {
@@ -155,23 +163,18 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     const onPointerDown = ( event: PointerEvent ) => {
         if (!mountRef.current || !raycasterRef.current || !pointerRef.current || !cameraRef.current || transformControlsRef.current?.dragging) return;
-
         const rect = mountRef.current.getBoundingClientRect();
         pointerRef.current.x = ( (event.clientX - rect.left) / currentMount.clientWidth ) * 2 - 1;
         pointerRef.current.y = - ( (event.clientY - rect.top) / currentMount.clientHeight ) * 2 + 1;
-
         raycasterRef.current.setFromCamera( pointerRef.current, cameraRef.current );
-
         const allSelectableObjects = Array.from(threeObjectsRef.current.values());
         const intersects = raycasterRef.current.intersectObjects( allSelectableObjects, true );
-
         if ( intersects.length > 0 ) {
             let intersectedObject = intersects[0].object;
             while(intersectedObject.parent && !intersectedObject.userData.id) {
-                if (intersectedObject.parent === sceneRef.current) break; // Should not happen with current structure
+                if (intersectedObject.parent === sceneRef.current) break;
                 intersectedObject = intersectedObject.parent;
             }
-
             if (intersectedObject.userData.id) {
                  setSelectedObjectId(intersectedObject.userData.id);
             } else {
@@ -189,7 +192,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       currentMount.removeEventListener('pointerdown', onPointerDown);
       transformControlsRef.current?.dispose();
       orbitControlsRef.current?.dispose();
-
       threeObjectsRef.current.forEach((obj) => {
         sceneRef.current?.remove(obj);
         if (obj instanceof THREE.Mesh) {
@@ -199,7 +201,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       });
       threeObjectsRef.current.clear();
-
       if (rendererRef.current?.domElement && currentMount.contains(rendererRef.current.domElement)) {
          currentMount.removeChild(rendererRef.current.domElement);
       }
@@ -207,7 +208,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       sceneRef.current?.clear();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, setSelectedObjectId, updateSceneObjectFromTransform]);
+  }, [isClient, updateSceneObjectFromTransform]);
 
 
   // Update THREE.js objects based on sceneObjects prop
@@ -219,6 +220,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     threeObjectsRef.current.forEach((obj, id) => {
         if (!currentObjectIds.has(id)) {
             sceneRef.current?.remove(obj);
+            if (transformControlsRef.current?.object === obj) {
+                transformControlsRef.current.detach();
+            }
             if (obj instanceof THREE.Mesh) {
                 obj.geometry.dispose();
                 if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
@@ -230,53 +234,75 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     sceneObjects.forEach(objData => {
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
+      const material = existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial
+        ? existingThreeObject.material
+        : new THREE.MeshStandardMaterial({ color: objData.color, metalness: 0.3, roughness: 0.6 });
+      
+      material.color.set(objData.color);
+
 
       if (existingThreeObject) {
+        // If it's a 3DText object and the text or type has changed, we might need to recreate it
+        // For now, we assume text content doesn't change after creation for simplicity in this step
+        // or type doesn't change from/to 3DText.
+        // A more robust solution would handle geometry recreation if objData.text changes.
         existingThreeObject.position.set(...objData.position);
         existingThreeObject.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
         existingThreeObject.scale.set(...objData.scale);
-
-        if (existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
-            existingThreeObject.material.color.set(objData.color);
-        }
       } else {
-        let geometry: THREE.BufferGeometry;
-        const material = new THREE.MeshStandardMaterial({ color: objData.color, metalness: 0.3, roughness: 0.6 });
-        switch (objData.type) {
-          case 'Sphere': geometry = new THREE.SphereGeometry(0.5, 32, 16); break;
-          case 'Plane': geometry = new THREE.PlaneGeometry(1, 1); break;
-          case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
-          case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
-          case 'Cube': default: geometry = new THREE.BoxGeometry(1, 1, 1); break;
+        let geometry: THREE.BufferGeometry | undefined;
+        if (objData.type === '3DText') {
+          if (font && objData.text) {
+            const textGeo = new TextGeometry(objData.text, {
+              font: font,
+              size: 0.5,
+              height: 0.1,
+              curveSegments: 12,
+              bevelEnabled: false,
+            });
+            textGeo.computeBoundingBox();
+            if (textGeo.boundingBox) {
+                const centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+                textGeo.translate(centerOffset, 0, 0); // Center horizontally
+            }
+            geometry = textGeo;
+          } else {
+            // Font not loaded yet or no text, create a placeholder or skip
+            console.warn("3DText object created but font not loaded or no text provided. Skipping mesh creation for now.", objData.name);
+            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); // Placeholder if font fails
+          }
+        } else {
+            switch (objData.type) {
+              case 'Sphere': geometry = new THREE.SphereGeometry(0.5, 32, 16); break;
+              case 'Plane': geometry = new THREE.PlaneGeometry(1, 1); break;
+              case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
+              case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
+              case 'Cube': default: geometry = new THREE.BoxGeometry(1, 1, 1); break;
+            }
         }
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.userData = { id: objData.id, type: objData.type }; // Store original type
+        
+        if (geometry) {
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = { id: objData.id, type: objData.type };
 
-        mesh.position.set(...objData.position);
-        mesh.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
-        mesh.scale.set(...objData.scale);
+            mesh.position.set(...objData.position);
+            mesh.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
+            mesh.scale.set(...objData.scale);
 
-        threeObjectsRef.current.set(objData.id, mesh);
-        sceneRef.current?.add(mesh);
+            threeObjectsRef.current.set(objData.id, mesh);
+            sceneRef.current?.add(mesh);
+        }
       }
     });
-  }, [isClient, sceneObjects, sceneRef]);
+  }, [isClient, sceneObjects, sceneRef, font]); // Re-run if font loads or sceneObjects change
 
 
-  // Handle TransformControls attachment and mode
   useEffect(() => {
     if (!isClient || !transformControlsRef.current || !orbitControlsRef.current || !cameraRef.current) return;
-
     const tc = transformControlsRef.current;
     const orbitControls = orbitControlsRef.current;
-
-    // Ensure TransformControls always uses the main editor camera
-    if (tc.camera !== cameraRef.current) {
-      tc.camera = cameraRef.current;
-    }
-    
     const selectedObject3D = selectedObjectId ? threeObjectsRef.current.get(selectedObjectId) : null;
 
     if (selectedObject3D && activeTool) {
@@ -288,19 +314,23 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         else if (activeTool === 'Scale' && tc.mode !== 'scale') { tc.setMode('scale'); }
         tc.visible = true;
         tc.enabled = true;
-        orbitControls.enabled = !tc.dragging; // Disable orbit while transforming
+        orbitControls.enabled = !tc.dragging;
     } else {
         if (tc.object) tc.detach();
         tc.visible = false;
         tc.enabled = false;
-        orbitControls.enabled = true; // Re-enable orbit controls
+        orbitControls.enabled = true;
     }
-  }, [isClient, selectedObjectId, activeTool, sceneObjects]); // sceneObjects to re-evaluate if selected obj changes
+  }, [isClient, selectedObjectId, activeTool, sceneObjects]);
 
 
   if (!isClient) {
     return <div ref={mountRef} className="w-full h-full bg-muted flex items-center justify-center"><p>Loading 3D View...</p></div>;
   }
+  if (isClient && !font && sceneObjects.some(obj => obj.type === '3DText')) {
+     return <div ref={mountRef} className="w-full h-full bg-muted flex items-center justify-center"><p>Loading Font for 3D Text...</p></div>;
+  }
+
 
   return <div ref={mountRef} className="w-full h-full" aria-label="3D Modeling Viewport" />;
 };

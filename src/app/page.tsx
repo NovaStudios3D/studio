@@ -15,6 +15,7 @@ export interface SceneObject {
   rotation: [number, number, number];
   scale: [number, number, number];
   color: string;
+  text?: string; // Optional text property for 3DText
 }
 
 export type ActiveTool = 'Move' | 'Rotate' | 'Scale' | null;
@@ -44,8 +45,8 @@ export default function Cybernox3DPage() {
       id: "initial-plane-1",
       name: "Green Plane",
       type: "Plane",
-      position: [0, 0.01, -2], // Slightly above the grid
-      rotation: [-Math.PI / 2, 0, 0], // Rotate to be flat
+      position: [0, 0.01, -2],
+      rotation: [-Math.PI / 2, 0, 0],
       scale: [3, 2, 1],
       color: "#0F9D58"
     },
@@ -72,6 +73,16 @@ export default function Cybernox3DPage() {
     }
     newObjectName = `${newObjectName} ${counter}`;
 
+    let textContent: string | undefined = undefined;
+    if (type === '3DText') {
+      const userText = window.prompt("Enter text for the 3D object:", "Hello");
+      if (userText === null || userText.trim() === "") {
+        toast({ title: "Text Input Cancelled", description: "No text provided, object not added.", variant: "destructive" });
+        return;
+      }
+      textContent = userText;
+    }
+
     const newObject: SceneObject = {
       id: newObjectId,
       name: newObjectName,
@@ -79,7 +90,8 @@ export default function Cybernox3DPage() {
       position: [Math.random() * 4 - 2, 0.5 + Math.random() * 1, Math.random() * 4 - 2],
       rotation: [0, 0, 0],
       scale: type === 'Plane' ? [2,2,1] : [1, 1, 1],
-      color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`
+      color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`,
+      text: textContent,
     };
 
     setSceneObjects(prevObjects => [...prevObjects, newObject]);
@@ -110,6 +122,9 @@ export default function Cybernox3DPage() {
     if (originalObject) {
       const newObjectId = `object-${Date.now()}`;
       let baseName = originalObject.name.replace(/ \(\d+\)$/, "").replace(/ \(Copy \d+\)$/, "").replace(/ \d+$/, "");
+      if (originalObject.type === '3DText') {
+        baseName = "3DText"; // Keep base name simple for text copies for now
+      }
       let counter = 1;
       let newObjectName = `${baseName} (Copy ${counter})`;
 

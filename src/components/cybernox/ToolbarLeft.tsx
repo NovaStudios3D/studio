@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Move, Rotate3d, Scaling, Trash2, Copy, Plus, Box, CircleDot, Square, Triangle, Type, DatabaseIcon } from "lucide-react";
+import { Move, Rotate3d, Scaling, Trash2, Copy, Plus, Box, CircleDot, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide } from "lucide-react"; // Renamed for clarity
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -44,10 +44,10 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   const shapes: { name: SceneObject['type']; icon: JSX.Element }[] = [
     { name: "Cube", icon: <Box className="w-4 h-4 mr-2" /> },
     { name: "Sphere", icon: <CircleDot className="w-4 h-4 mr-2" /> },
-    { name: "Plane", icon: <Square className="w-4 h-4 mr-2" /> },
-    { name: "Pyramid", icon: <Triangle className="w-4 h-4 mr-2" /> },
-    { name: "Cylinder", icon: <DatabaseIcon className="w-4 h-4 mr-2" /> },
-    // { name: "3DText", icon: <Type className="w-4 h-4 mr-2" /> },
+    { name: "Plane", icon: <PlaneIconLucide className="w-4 h-4 mr-2" /> },
+    { name: "Pyramid", icon: <Pyramid className="w-4 h-4 mr-2" /> },
+    { name: "Cylinder", icon: <CylinderIcon className="w-4 h-4 mr-2" /> },
+    { name: "3DText", icon: <Type className="w-4 h-4 mr-2" /> },
   ];
 
   return (

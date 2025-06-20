@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, CircleDot, Plane as PlaneIconLucide, Pyramid, Cylinder } from "lucide-react"; // Renamed Plane to avoid conflict
+import { Menu, Box, CircleDot, Plane as PlaneIconLucide, Pyramid, Cylinder as CylinderIcon, Type } from "lucide-react"; // Renamed Plane to avoid conflict
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -24,9 +24,9 @@ const getIconForType = (type: SceneObject['type']) => {
     case "Pyramid":
       return <Pyramid className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Cylinder":
-      return <Cylinder className="w-4 h-4 mr-2 text-muted-foreground" />;
-    // case "3DText":
-    //   return <Type className="w-4 h-4 mr-2 text-muted-foreground" />; // Type is not used from lucide-react to avoid conflicts
+      return <CylinderIcon className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "3DText":
+      return <Type className="w-4 h-4 mr-2 text-muted-foreground" />;
     default:
       return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
   }
@@ -56,6 +56,9 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
                 >
                   {getIconForType(obj.type)}
                   <span className="truncate">{obj.name}</span>
+                  {obj.type === '3DText' && obj.text && (
+                     <span className="ml-2 text-xs text-muted-foreground truncate italic">"{obj.text}"</span>
+                  )}
                 </Button>
               </li>
             ))}
