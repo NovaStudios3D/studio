@@ -234,9 +234,15 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     sceneObjects.forEach(objData => {
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
+      // For 3DText, use a less metallic/rough material for a purer white.
+      const is3DText = objData.type === '3DText';
       const material = existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial
         ? existingThreeObject.material
-        : new THREE.MeshStandardMaterial({ color: objData.color, metalness: 0.3, roughness: 0.6 });
+        : new THREE.MeshStandardMaterial({ 
+            color: objData.color, 
+            metalness: is3DText ? 0.0 : 0.3, 
+            roughness: is3DText ? 0.8 : 0.6 
+          });
       
       material.color.set(objData.color);
 
@@ -248,6 +254,10 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         existingThreeObject.scale.set(...objData.scale);
         if (existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
             existingThreeObject.material.color.set(objData.color);
+            if (is3DText) {
+              existingThreeObject.material.metalness = 0.0;
+              existingThreeObject.material.roughness = 0.8;
+            }
         }
 
          // Handle 3DText specific updates (recreate geometry if text changes)
@@ -273,8 +283,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
           if (font && objData.text) {
             const textGeo = new TextGeometry(objData.text, {
               font: font,
-              size: 1.0, // Increased size
-              height: 0.2, // Increased depth
+              size: 1.5, // Increased size
+              height: 0.4, // Increased depth (front to back)
               curveSegments: 12,
               bevelEnabled: false,
             });
@@ -357,3 +367,4 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 };
 
 export default ThreeScene;
+ 
