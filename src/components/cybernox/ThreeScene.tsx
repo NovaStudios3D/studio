@@ -17,7 +17,6 @@ interface ThreeSceneProps {
   activeTool: ActiveTool;
 }
 
-// Path to a font file (using Three.js examples CDN for convenience)
 const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json';
 
 
@@ -45,7 +44,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
   useEffect(() => {
     setIsClient(true);
-    // Load font
     const fontLoader = new FontLoader();
     fontLoader.load(FONT_PATH, (loadedFont) => {
       setFont(loadedFont);
@@ -76,7 +74,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     const currentMount = mountRef.current;
 
     sceneRef.current = new THREE.Scene();
-    sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#f0f0f0');
+    sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#1a1a1a'); // Fallback to dark
 
     cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
     cameraRef.current.position.set(5, 5, 15); 
@@ -109,7 +107,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
-    const gridHelper = new THREE.GridHelper(1000, 100, 0xaaaaaa, 0xbbbbbb);
+    const gridHelper = new THREE.GridHelper(1000, 100, 0xaaaaaa, 0xbbbbbb); // Grid colors might need adjustment for dark theme
     sceneRef.current.add(gridHelper);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
@@ -129,7 +127,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       new THREE.ShadowMaterial({ opacity: 0.3, color: 0x999999 })
     );
     groundPlane.rotation.x = -Math.PI / 2;
-    groundPlane.position.y = -0.01; // Slightly below grid
+    groundPlane.position.y = -0.01; 
     groundPlane.receiveShadow = true;
     sceneRef.current.add(groundPlane);
 
@@ -156,7 +154,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     const observer = new MutationObserver(() => {
       if(sceneRef.current) {
-        sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#f0f0f0');
+        sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#1a1a1a');
       }
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
@@ -172,7 +170,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         if ( intersects.length > 0 ) {
             let intersectedObject = intersects[0].object;
             while(intersectedObject.parent && !intersectedObject.userData.id) {
-                if (intersectedObject.parent === sceneRef.current) break; // Stop if we reach the scene directly
+                if (intersectedObject.parent === sceneRef.current) break; 
                 intersectedObject = intersectedObject.parent;
             }
             if (intersectedObject.userData.id) {
@@ -211,7 +209,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   }, [isClient, updateSceneObjectFromTransform]);
 
 
-  // Update THREE.js objects based on sceneObjects prop
   useEffect(() => {
     if (!isClient || !sceneRef.current) return;
 
@@ -234,21 +231,23 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     sceneObjects.forEach(objData => {
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
-      // For 3DText, use a less metallic/rough material for a purer white.
       const is3DText = objData.type === '3DText';
       const material = existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial
         ? existingThreeObject.material
         : new THREE.MeshStandardMaterial({ 
             color: objData.color, 
             metalness: is3DText ? 0.0 : 0.3, 
-            roughness: is3DText ? 0.8 : 0.6 
+            roughness: is3DText ? 0.1 : 0.6 // Reduced roughness for 3D text to make it appear smoother/whiter
           });
       
       material.color.set(objData.color);
+      if (is3DText) {
+        material.metalness = 0.0;
+        material.roughness = 0.1;
+      }
 
 
       if (existingThreeObject) {
-        // A more robust solution would handle geometry recreation if objData.text changes or type changes.
         existingThreeObject.position.set(...objData.position);
         existingThreeObject.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
         existingThreeObject.scale.set(...objData.scale);
@@ -256,47 +255,49 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             existingThreeObject.material.color.set(objData.color);
             if (is3DText) {
               existingThreeObject.material.metalness = 0.0;
-              existingThreeObject.material.roughness = 0.8;
+              existingThreeObject.material.roughness = 0.1;
             }
         }
 
-         // Handle 3DText specific updates (recreate geometry if text changes)
         if (objData.type === '3DText' && objData.text && font) {
             const mesh = existingThreeObject as THREE.Mesh;
-            // Check if text content or other critical properties changed that require new geometry
-            if (mesh.userData.text !== objData.text || !mesh.geometry.type.includes('TextGeometry')) {
+            if (mesh.userData.text !== objData.text || !mesh.geometry.parameters || mesh.geometry.parameters.text !== objData.text) {
                  sceneRef.current?.remove(mesh);
                  if (transformControlsRef.current?.object === mesh) transformControlsRef.current.detach();
                  mesh.geometry.dispose();
                  if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose()); else mesh.material.dispose();
                  threeObjectsRef.current.delete(objData.id);
-                 existingThreeObject = undefined; // Force recreation
+                 existingThreeObject = undefined; 
             }
         }
 
 
       }
       
-      if (!existingThreeObject) { // Covers both new objects and text objects needing recreation
+      if (!existingThreeObject) { 
         let geometry: THREE.BufferGeometry | undefined;
         if (objData.type === '3DText') {
           if (font && objData.text) {
             const textGeo = new TextGeometry(objData.text, {
               font: font,
-              size: 1.5, // Increased size
-              height: 0.4, // Increased depth (front to back)
+              size: 1.5, 
+              height: 0.4, 
               curveSegments: 12,
-              bevelEnabled: false,
+              bevelEnabled: true,
+              bevelThickness: 0.08, // Increased for more thickness
+              bevelSize: 0.03,      // How far the bevel extends from the text outline
+              bevelOffset: 0,
+              bevelSegments: 4      // Smoother bevel
             });
             textGeo.computeBoundingBox();
             if (textGeo.boundingBox) {
                 const centerOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
-                textGeo.translate(centerOffset, 0, 0); // Center horizontally
+                textGeo.translate(centerOffset, 0, 0); 
             }
             geometry = textGeo;
           } else {
             console.warn("3DText object: font not loaded or no text. Using placeholder.", objData.name);
-            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); // Small placeholder
+            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); 
           }
         } else {
             switch (objData.type) {
@@ -314,7 +315,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             mesh.receiveShadow = true;
             mesh.userData = { id: objData.id, type: objData.type };
             if (objData.type === '3DText') {
-                mesh.userData.text = objData.text; // Store text for comparison
+                mesh.userData.text = objData.text; 
             }
 
 
@@ -367,6 +368,3 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 };
 
 export default ThreeScene;
- 
-
-    
