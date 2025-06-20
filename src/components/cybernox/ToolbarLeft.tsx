@@ -94,7 +94,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
               <Button
                 variant={activeTool === tool.name ? "default" : "outline"}
                 size="icon"
-                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${activeTool === tool.name ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2' : 'hover:bg-accent/20'}`}
+                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${activeTool === tool.name ? 'bg-accent text-accent-foreground hover:bg-accent/90 ring-2 ring-accent ring-offset-background ring-offset-2' : 'hover:bg-accent/20'}`}
                 onClick={() => setActiveTool(tool.name)}
                 aria-label={tool.ariaLabel}
               >
