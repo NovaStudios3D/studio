@@ -5,12 +5,12 @@ import React, { useState, useCallback } from 'react';
 import ThreeScene from "@/components/cybernox/ThreeScene";
 import ToolbarLeft from "@/components/cybernox/ToolbarLeft";
 import ObjectListPanel from "@/components/cybernox/ObjectListPanel";
-import { useToast } from "@/hooks/use-toast"; // Added for toast notifications
+import { useToast } from "@/hooks/use-toast";
 
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText'; // Added 3DText
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
@@ -23,17 +23,44 @@ export default function Cybernox3DPage() {
   const { toast } = useToast();
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([
     { 
-      id: "initial-cube", 
-      name: "Cube 1", 
+      id: "initial-cube-1", 
+      name: "Blue Cube", 
       type: "Cube", 
-      position: [0, 0.5, 0], 
-      rotation: [0,0,0], 
+      position: [-2, 0.5, 0], 
+      rotation: [0, Math.PI / 4, 0], 
       scale: [1,1,1], 
-      color: "#4285F4" 
+      color: "#4285F4" // Primary blue
+    },
+    { 
+      id: "initial-sphere-1", 
+      name: "Red Sphere", 
+      type: "Sphere", 
+      position: [2, 0.75, 1], 
+      rotation: [0,0,0], 
+      scale: [1.5, 1.5, 1.5], 
+      color: "#DB4437" // Red
+    },
+    { 
+      id: "initial-plane-1", 
+      name: "Green Plane", 
+      type: "Plane", 
+      position: [0, 0.01, -2], // Slightly above the grid
+      rotation: [-Math.PI / 2, 0, 0], // Lay it flat
+      scale: [3, 2, 1], 
+      color: "#0F9D58" // Green
+    },
+     { 
+      id: "initial-cylinder-1", 
+      name: "Yellow Cylinder", 
+      type: "Cylinder", 
+      position: [0, 0.5, 2], 
+      rotation: [0,0,0], 
+      scale: [0.5, 1, 0.5], 
+      color: "#F4B400" // Yellow
     },
   ]);
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube");
-  const [activeTool, setActiveTool] = useState<ActiveTool>(null);
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube-1");
+  const [activeTool, setActiveTool] = useState<ActiveTool>('Move'); // Default to Move tool
 
   const addSceneObject = useCallback((type: SceneObject['type']) => {
     const newObjectId = `object-${Date.now()}`;
@@ -49,18 +76,18 @@ export default function Cybernox3DPage() {
       id: newObjectId,
       name: newObjectName,
       type: type,
-      position: [Math.random() * 4 - 2, 0.5, Math.random() * 4 - 2], // Random position for variety
+      position: [Math.random() * 4 - 2, 0.5 + Math.random() * 1, Math.random() * 4 - 2], // Random position for variety
       rotation: [0, 0, 0],
-      scale: [1, 1, 1],
+      scale: type === 'Plane' ? [2,2,1] : [1, 1, 1], // Planes might be better a bit larger
       color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}` // Random color
     };
     setSceneObjects(prevObjects => [...prevObjects, newObject]);
     setSelectedObjectId(newObjectId);
-    toast({
-      title: "Object Added",
-      description: `${newObject.name} (${newObject.type}) added to the scene.`,
-    });
-  }, [sceneObjects, toast]);
+    // toast({ // Toast on add can be noisy, consider removing or making it optional
+    //   title: "Object Added",
+    //   description: `${newObject.name} (${newObject.type}) added to the scene.`,
+    // });
+  }, [sceneObjects]); // Removed toast dependency as it's not used directly in addSceneObject
 
   const deleteSelectedObject = useCallback(() => {
     if (!selectedObjectId) {
@@ -69,7 +96,9 @@ export default function Cybernox3DPage() {
     }
     const objectToDelete = sceneObjects.find(obj => obj.id === selectedObjectId);
     setSceneObjects(prevObjects => prevObjects.filter(obj => obj.id !== selectedObjectId));
-    toast({ title: "Object Deleted", description: `${objectToDelete?.name || 'Selected object'} deleted.`, variant: "destructive" });
+    if (objectToDelete) { // Check if objectToDelete is found before accessing its name
+        toast({ title: "Object Deleted", description: `${objectToDelete.name} deleted.`, variant: "destructive" });
+    }
     setSelectedObjectId(null);
   }, [selectedObjectId, sceneObjects, toast]);
 
@@ -81,31 +110,17 @@ export default function Cybernox3DPage() {
     const originalObject = sceneObjects.find(obj => obj.id === selectedObjectId);
     if (originalObject) {
       const newObjectId = `object-${Date.now()}`;
-      let newObjectName = originalObject.name.replace(/ \d+$/, ""); // Remove existing number suffix
+      let baseName = originalObject.name.replace(/ \(\d+\)$/, "").replace(/ \(Copy \d+\)$/, "").replace(/ \d+$/, "");
       let counter = 1;
+      let newObjectName = `${baseName} (Copy ${counter})`;
+
       // Ensure unique name for the copy
-      while (sceneObjects.some(obj => obj.name === `${newObjectName} (Copy ${counter})` || obj.name === `${newObjectName} ${counter}` )) {
-         if (sceneObjects.some(obj => obj.name === `${newObjectName} (Copy ${counter})`)) {
-            counter++;
-         } else if (sceneObjects.some(obj => obj.name === `${newObjectName} ${counter}`)) {
-             // Find the highest existing number for the base name
-            const existingNumbers = sceneObjects
-                .filter(obj => obj.name.startsWith(newObjectName) && !obj.name.includes("(Copy"))
-                .map(obj => parseInt(obj.name.substring(newObjectName.length + 1)))
-                .filter(num => !isNaN(num));
-            counter = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-            // Now check for copy numbers again
-            while (sceneObjects.some(obj => obj.name === `${newObjectName} (Copy ${counter})`)) {
-                counter++;
-            }
-            break; 
-         } else {
-            break;
-         }
+      // eslint-disable-next-line no-loop-func
+      while (sceneObjects.some(obj => obj.name === newObjectName)) {
+        counter++;
+        newObjectName = `${baseName} (Copy ${counter})`;
       }
-      newObjectName = `${newObjectName} (Copy ${counter})`;
-
-
+      
       const newObject: SceneObject = {
         ...originalObject,
         id: newObjectId,
@@ -143,7 +158,6 @@ export default function Cybernox3DPage() {
         />
       </main>
       <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
-        {/* ToolbarRight is removed from here */}
         <div className="flex-grow min-h-0">
           <ObjectListPanel
             objects={sceneObjects}
