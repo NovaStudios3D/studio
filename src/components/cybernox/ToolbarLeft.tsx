@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Hand, RotateCw, Maximize2, Trash2, Copy, Plus, Box, CircleDot, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide, Eye, EyeOff } from "lucide-react";
+import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide, Eye, EyeOff } from "lucide-react"; // Changed Hand to Move3d, CircleDot to Circle
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -35,7 +35,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onToggleShadows,
 }) => {
   const mainTools = [
-    { name: "Move" as ActiveTool, icon: <Hand className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
+    { name: "Move" as ActiveTool, icon: <Move3d className="w-5 h-5" />, ariaLabel: "Move Tool (M)" }, // Changed icon
     { name: "Rotate" as ActiveTool, icon: <RotateCw className="w-5 h-5" />, ariaLabel: "Rotate Tool (R)" },
     { name: "Scale" as ActiveTool, icon: <Maximize2 className="w-5 h-5" />, ariaLabel: "Scale Tool (S)" },
   ];
@@ -47,7 +47,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
 
   const shapes: { name: SceneObject['type']; icon: JSX.Element; displayName: string }[] = [
     { name: "Cube", icon: <Box className="w-4 h-4 mr-2" />, displayName: "Cube" },
-    { name: "Sphere", icon: <CircleDot className="w-4 h-4 mr-2" />, displayName: "Sphere" },
+    { name: "Sphere", icon: <Circle className="w-4 h-4 mr-2" />, displayName: "Sphere" }, // Changed from CircleDot
     { name: "Plane", icon: <PlaneIconLucide className="w-4 h-4 mr-2" />, displayName: "Plane" },
     { name: "Pyramid", icon: <Pyramid className="w-4 h-4 mr-2" />, displayName: "Pyramid" },
     { name: "Cylinder", icon: <CylinderIcon className="w-4 h-4 mr-2" />, displayName: "Cylinder" },
@@ -94,6 +94,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
           if (isActive) {
             toolSpecificClass = 'ring-2 ring-primary ring-offset-background ring-offset-2';
           } else {
+            // Apply subtle orange hover only when inactive
             toolSpecificClass = 'hover:bg-accent/20';
           }
           
@@ -103,7 +104,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
                 <Button
                   variant="outline"
                   size="icon"
-                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${toolSpecificClass}`}
+                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${toolSpecificClass} ${isActive ? '' : 'hover:bg-accent/20'}`}
                   onClick={() => setActiveTool(tool.name)}
                   aria-label={tool.ariaLabel}
                   aria-pressed={isActive}
