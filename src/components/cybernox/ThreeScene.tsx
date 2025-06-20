@@ -74,7 +74,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     const currentMount = mountRef.current;
 
     sceneRef.current = new THREE.Scene();
-    sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#1a1a1a'); // Fallback to dark
+    sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#1a1a1a');
 
     cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
     cameraRef.current.position.set(5, 5, 15); 
@@ -107,7 +107,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
-    const gridHelper = new THREE.GridHelper(1000, 100, 0xaaaaaa, 0xbbbbbb); // Grid colors might need adjustment for dark theme
+    const gridHelper = new THREE.GridHelper(1000, 100, 0x555555, 0x333333); 
     sceneRef.current.add(gridHelper);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
@@ -124,7 +124,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     const groundPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(1000, 1000),
-      new THREE.ShadowMaterial({ opacity: 0.3, color: 0x999999 })
+      new THREE.ShadowMaterial({ opacity: 0.3, color: 0x181818 }) 
     );
     groundPlane.rotation.x = -Math.PI / 2;
     groundPlane.position.y = -0.01; 
@@ -237,7 +237,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         : new THREE.MeshStandardMaterial({ 
             color: objData.color, 
             metalness: is3DText ? 0.0 : 0.3, 
-            roughness: is3DText ? 0.1 : 0.6 // Reduced roughness for 3D text to make it appear smoother/whiter
+            roughness: is3DText ? 0.1 : 0.6 
           });
       
       material.color.set(objData.color);
@@ -368,3 +368,5 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 };
 
 export default ThreeScene;
+
+    
