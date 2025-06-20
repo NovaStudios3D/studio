@@ -113,8 +113,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
-    gridHelperRef.current = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff);
-    (gridHelperRef.current.material as THREE.Material).opacity = 0.5;
+    gridHelperRef.current = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff); // White grid lines
+    (gridHelperRef.current.material as THREE.Material).opacity = 0.5; // Make them semi-transparent
     (gridHelperRef.current.material as THREE.Material).transparent = true;
     sceneRef.current.add(gridHelperRef.current);
 
@@ -134,7 +134,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       new THREE.ShadowMaterial({ color: 0x080808, opacity: 0.3 }) // Darker for dark theme
     );
     groundPlaneRef.current.rotation.x = -Math.PI / 2;
-    groundPlaneRef.current.position.y = -0.01; // Slightly below the grid
+    groundPlaneRef.current.position.y = -0.01; // Slightly below the grid to prevent Z-fighting
     groundPlaneRef.current.receiveShadow = true;
     sceneRef.current.add(groundPlaneRef.current);
 
@@ -154,7 +154,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         rendererRef.current.setSize(width, height);
         cameraRef.current.aspect = width / height;
         cameraRef.current.updateProjectionMatrix();
-        // Ensure background color updates on resize too, e.g. if theme changes while window is not focused
         const newEditorBgColor = getComputedStyle(currentMount).getPropertyValue('background-color') || 'hsl(var(--background))';
         if (sceneRef.current) {
           sceneRef.current.background = new THREE.Color(newEditorBgColor);
@@ -239,9 +238,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     threeObjectsRef.current.forEach(obj => {
       if (obj instanceof THREE.Mesh) {
         obj.castShadow = showShadows;
-        obj.receiveShadow = showShadows; // Planes and ground usually only receive
+        obj.receiveShadow = showShadows; 
          if (obj.userData.type === 'Plane') {
-            obj.castShadow = false; // Planes typically shouldn't cast shadows unless intended
+            obj.castShadow = false; 
         }
       }
     });
@@ -279,7 +278,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         : new THREE.MeshStandardMaterial({
             color: objData.color,
             metalness: is3DText ? 0.0 : 0.3,
-            roughness: is3DText ? 0.1 : 0.6
+            roughness: is3DText ? 0.1 : 0.6 
           });
 
       material.color.set(objData.color);
@@ -314,7 +313,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                  mesh.geometry.dispose();
                  if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose()); else mesh.material.dispose();
                  threeObjectsRef.current.delete(objData.id);
-                 existingThreeObject = undefined;
+                 existingThreeObject = undefined; 
             }
         }
       }
@@ -325,22 +324,20 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
           if (font && objData.text) {
             const textGeo = new TextGeometry(objData.text, {
               font: font,
-              size: 1.5, // Bigger
-              height: 0.4, // More front-to-back depth
+              size: 1.5, 
+              height: 0.4, 
               curveSegments: 12,
               bevelEnabled: true,
-              bevelThickness: 0.08, // Thicker text
+              bevelThickness: 0.08, 
               bevelSize: 0.03,
               bevelOffset: 0,
               bevelSegments: 4
             });
             textGeo.computeBoundingBox();
             if (textGeo.boundingBox) {
-                const xOffset = -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
-                const yOffset = -0.5 * (textGeo.boundingBox.max.y - textGeo.boundingBox.min.y);
-                // Keep Z offset to ensure pivot is at the back for typical text orientation
-                // const zOffset = -0.5 * (textGeo.boundingBox.max.z - textGeo.boundingBox.min.z);
-                textGeo.translate(xOffset, yOffset, 0); // Center X and Y, keep Z for front-facing
+                const centerOffset = new THREE.Vector3();
+                textGeo.boundingBox.getCenter(centerOffset).negate();
+                textGeo.translate(centerOffset.x, centerOffset.y, centerOffset.z);
             }
             geometry = textGeo;
           } else {
@@ -355,7 +352,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
               case 'Cube': default: geometry = new THREE.BoxGeometry(1, 1, 1); break;
             }
         }
-
+        
         if (geometry) {
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = showShadows && objData.type !== 'Plane';
@@ -413,5 +410,3 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 };
 
 export default ThreeScene;
-
-    
