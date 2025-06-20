@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Move, Rotate3d, Scaling, Trash2, Copy, Plus, Box, CircleDot, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide } from "lucide-react"; // Renamed for clarity
+import { Move, Rotate3d, Scaling, Trash2, Copy, Plus, Box, CircleDot, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide, Eye, EyeOff } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -21,6 +21,8 @@ interface ToolbarLeftProps {
   onAddShape: (type: SceneObject['type']) => void;
   onDeleteObject: () => void;
   onCopyObject: () => void;
+  showShadows: boolean;
+  onToggleShadows: () => void;
 }
 
 const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
@@ -29,6 +31,8 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onAddShape,
   onDeleteObject,
   onCopyObject,
+  showShadows,
+  onToggleShadows,
 }) => {
   const mainTools = [
     { name: "Move" as ActiveTool, icon: <Move className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
@@ -98,6 +102,9 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             </TooltipContent>
           </Tooltip>
         ))}
+        
+        <div className="border-t border-border w-full my-1"></div>
+
 
         {/* Action Tools: Copy, Delete */}
         {actionTools.map((tool) => (
@@ -118,6 +125,24 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             </TooltipContent>
           </Tooltip>
         ))}
+
+        {/* Toggle Shadows */}
+        <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full w-12 h-12 transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-accent/20"
+                onClick={onToggleShadows}
+                aria-label={showShadows ? "Hide Shadows" : "Show Shadows"}
+              >
+                {showShadows ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{showShadows ? "Hide Shadows" : "Show Shadows"}</p>
+            </TooltipContent>
+          </Tooltip>
       </div>
     </TooltipProvider>
   );

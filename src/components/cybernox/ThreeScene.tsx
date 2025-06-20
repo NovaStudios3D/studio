@@ -15,17 +15,18 @@ interface ThreeSceneProps {
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
   activeTool: ActiveTool;
+  showShadows: boolean;
 }
 
 const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json';
-
 
 const ThreeScene: React.FC<ThreeSceneProps> = ({
   sceneObjects,
   setSceneObjects,
   selectedObjectId,
   setSelectedObjectId,
-  activeTool
+  activeTool,
+  showShadows
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
@@ -36,6 +37,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const orbitControlsRef = useRef<OrbitControls | null>(null);
   const transformControlsRef = useRef<TransformControls | null>(null);
+  const directionalLightRef = useRef<THREE.DirectionalLight | null>(null);
+  const groundPlaneRef = useRef<THREE.Mesh<THREE.PlaneGeometry, THREE.ShadowMaterial> | null>(null);
+
 
   const threeObjectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
@@ -74,7 +78,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     const currentMount = mountRef.current;
 
     sceneRef.current = new THREE.Scene();
-    sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#1a1a1a');
+    sceneRef.current.background = new THREE.Color(0x101010); // Dark sky color
 
     cameraRef.current = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 2000);
     cameraRef.current.position.set(5, 5, 15); 
@@ -83,7 +87,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
     rendererRef.current.setSize(currentMount.clientWidth, currentMount.clientHeight);
     rendererRef.current.setPixelRatio(window.devicePixelRatio);
-    rendererRef.current.shadowMap.enabled = true;
     currentMount.appendChild(rendererRef.current.domElement);
 
     orbitControlsRef.current = new OrbitControls(cameraRef.current, rendererRef.current.domElement);
@@ -107,29 +110,30 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
-    const gridHelper = new THREE.GridHelper(1000, 100, 0x555555, 0x333333); 
+    const gridHelper = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff); // White grid lines
+    gridHelper.material.opacity = 0.2;
+    gridHelper.material.transparent = true;
     sceneRef.current.add(gridHelper);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     sceneRef.current.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight.position.set(8, 15, 10);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 1024;
-    directionalLight.shadow.mapSize.height = 1024;
-    directionalLight.shadow.camera.near = 0.5;
-    directionalLight.shadow.camera.far = 50;
-    sceneRef.current.add(directionalLight);
+    directionalLightRef.current = new THREE.DirectionalLight(0xffffff, 1.2);
+    directionalLightRef.current.position.set(8, 15, 10);
+    directionalLightRef.current.shadow.mapSize.width = 1024;
+    directionalLightRef.current.shadow.mapSize.height = 1024;
+    directionalLightRef.current.shadow.camera.near = 0.5;
+    directionalLightRef.current.shadow.camera.far = 50;
+    sceneRef.current.add(directionalLightRef.current);
 
-    const groundPlane = new THREE.Mesh(
+    groundPlaneRef.current = new THREE.Mesh(
       new THREE.PlaneGeometry(1000, 1000),
-      new THREE.ShadowMaterial({ opacity: 0.3, color: 0x181818 }) 
+      new THREE.ShadowMaterial({ color: 0x080808, opacity: 0.3 }) 
     );
-    groundPlane.rotation.x = -Math.PI / 2;
-    groundPlane.position.y = -0.01; 
-    groundPlane.receiveShadow = true;
-    sceneRef.current.add(groundPlane);
+    groundPlaneRef.current.rotation.x = -Math.PI / 2;
+    groundPlaneRef.current.position.y = -0.01; 
+    groundPlaneRef.current.receiveShadow = true;
+    sceneRef.current.add(groundPlaneRef.current);
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -151,13 +155,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     };
     window.addEventListener('resize', handleResize);
     handleResize(); 
-
-    const observer = new MutationObserver(() => {
-      if(sceneRef.current) {
-        sceneRef.current.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#1a1a1a');
-      }
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
 
     const onPointerDown = ( event: PointerEvent ) => {
         if (!mountRef.current || !raycasterRef.current || !pointerRef.current || !cameraRef.current || transformControlsRef.current?.dragging) return;
@@ -186,7 +183,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      observer.disconnect();
       currentMount.removeEventListener('pointerdown', onPointerDown);
       transformControlsRef.current?.dispose();
       orbitControlsRef.current?.dispose();
@@ -207,6 +203,30 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, updateSceneObjectFromTransform]);
+
+  // Effect for managing shadows
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.shadowMap.enabled = showShadows;
+    }
+    if (directionalLightRef.current) {
+      directionalLightRef.current.castShadow = showShadows;
+    }
+    if (groundPlaneRef.current) {
+        groundPlaneRef.current.material.opacity = showShadows ? 0.3 : 0;
+    }
+
+    threeObjectsRef.current.forEach(obj => {
+      if (obj instanceof THREE.Mesh) {
+        obj.castShadow = showShadows;
+        obj.receiveShadow = showShadows; // Most objects might not need to receive, but doesn't hurt
+      }
+    });
+    // Force re-render if scene exists
+    if (sceneRef.current && cameraRef.current && rendererRef.current) {
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
+    }
+  }, [showShadows]);
 
 
   useEffect(() => {
@@ -246,17 +266,20 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         material.roughness = 0.1;
       }
 
-
       if (existingThreeObject) {
         existingThreeObject.position.set(...objData.position);
         existingThreeObject.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
         existingThreeObject.scale.set(...objData.scale);
-        if (existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
-            existingThreeObject.material.color.set(objData.color);
-            if (is3DText) {
-              existingThreeObject.material.metalness = 0.0;
-              existingThreeObject.material.roughness = 0.1;
+        if (existingThreeObject instanceof THREE.Mesh) {
+            if(existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
+                existingThreeObject.material.color.set(objData.color);
+                if (is3DText) {
+                    existingThreeObject.material.metalness = 0.0;
+                    existingThreeObject.material.roughness = 0.1;
+                }
             }
+            existingThreeObject.castShadow = showShadows;
+            existingThreeObject.receiveShadow = showShadows;
         }
 
         if (objData.type === '3DText' && objData.text && font) {
@@ -270,8 +293,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                  existingThreeObject = undefined; 
             }
         }
-
-
       }
       
       if (!existingThreeObject) { 
@@ -284,10 +305,10 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
               height: 0.4, 
               curveSegments: 12,
               bevelEnabled: true,
-              bevelThickness: 0.08, // Increased for more thickness
-              bevelSize: 0.03,      // How far the bevel extends from the text outline
+              bevelThickness: 0.08,
+              bevelSize: 0.03,
               bevelOffset: 0,
-              bevelSegments: 4      // Smoother bevel
+              bevelSegments: 4
             });
             textGeo.computeBoundingBox();
             if (textGeo.boundingBox) {
@@ -311,13 +332,12 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         
         if (geometry) {
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+            mesh.castShadow = showShadows;
+            mesh.receiveShadow = showShadows;
             mesh.userData = { id: objData.id, type: objData.type };
             if (objData.type === '3DText') {
                 mesh.userData.text = objData.text; 
             }
-
 
             mesh.position.set(...objData.position);
             mesh.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
@@ -328,7 +348,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-  }, [isClient, sceneObjects, sceneRef, font]); 
+  }, [isClient, sceneObjects, sceneRef, font, showShadows]); 
 
 
   useEffect(() => {
@@ -363,10 +383,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
      return <div ref={mountRef} className="w-full h-full bg-muted flex items-center justify-center"><p>Loading Font for 3D Text...</p></div>;
   }
 
-
   return <div ref={mountRef} className="w-full h-full" aria-label="3D Modeling Viewport" />;
 };
 
 export default ThreeScene;
-
-    

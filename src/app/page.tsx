@@ -62,13 +62,13 @@ export default function Cybernox3DPage() {
   ]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube-1");
   const [activeTool, setActiveTool] = useState<ActiveTool>('Move');
+  const [showShadows, setShowShadows] = useState<boolean>(true);
 
 
   const addSceneObject = useCallback((type: SceneObject['type']) => {
     const newObjectId = `object-${Date.now()}`;
-    let newObjectName = type === '3DText' ? '3D Text' : type; // Use spaced name for default naming
+    let newObjectName = type === '3DText' ? '3D Text' : type;
     let counter = 1;
-    // Ensure the base name for numbering is consistent
     const baseNameForCount = type === '3DText' ? '3D Text' : type;
     while (sceneObjects.some(obj => obj.name === `${baseNameForCount} ${counter}`)) {
       counter++;
@@ -85,7 +85,7 @@ export default function Cybernox3DPage() {
         return;
       }
       textContent = userText;
-      objectColor = '#FFFFFF'; // Default 3D Text to white
+      objectColor = '#FFFFFF';
     }
 
     const newObject: SceneObject = {
@@ -126,17 +126,13 @@ export default function Cybernox3DPage() {
     const originalObject = sceneObjects.find(obj => obj.id === selectedObjectId);
     if (originalObject) {
       const newObjectId = `object-${Date.now()}`;
-      // Use the base name for copying, e.g., "Cube" from "Cube 1" or "3D Text" from "3D Text (Copy 1)"
       let baseName = originalObject.type === '3DText' ? '3D Text' : originalObject.type;
       
-      // Remove existing numbering or copy indicators for a cleaner base name
-      // This regex aims to strip " (Copy X)" or " X" from the end
       const nameWithoutCopySuffix = originalObject.name.replace(/ \(\text{Copy} \d+\)$/, "");
       const nameWithoutNumberSuffix = nameWithoutCopySuffix.replace(/ \d+$/, "");
       if (sceneObjects.some(obj => obj.name.startsWith(nameWithoutNumberSuffix))) {
           baseName = nameWithoutNumberSuffix;
       }
-
 
       let counter = 1;
       let newObjectName = `${baseName} (Copy ${counter})`;
@@ -165,6 +161,11 @@ export default function Cybernox3DPage() {
     }
   }, [selectedObjectId, sceneObjects, toast]);
 
+  const toggleShowShadows = useCallback(() => {
+    setShowShadows(prev => !prev);
+    toast({ title: "Shadows " + (!showShadows ? "Enabled" : "Disabled") });
+  }, [showShadows, toast]);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden antialiased font-body bg-background">
       <ToolbarLeft
@@ -173,6 +174,8 @@ export default function Cybernox3DPage() {
         onAddShape={addSceneObject}
         onDeleteObject={deleteSelectedObject}
         onCopyObject={copySelectedObject}
+        showShadows={showShadows}
+        onToggleShadows={toggleShowShadows}
       />
       <main className="flex-1 relative overflow-hidden">
         <ThreeScene
@@ -181,6 +184,7 @@ export default function Cybernox3DPage() {
           selectedObjectId={selectedObjectId}
           setSelectedObjectId={setSelectedObjectId}
           activeTool={activeTool}
+          showShadows={showShadows}
         />
       </main>
       <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
