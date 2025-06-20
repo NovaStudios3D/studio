@@ -62,7 +62,11 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button variant="default" className="rounded-full w-12 h-12 p-0 bg-accent hover:bg-accent/90 text-accent-foreground transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110" aria-label="Add new shape">
+                <Button
+                  variant="default"
+                  className="rounded-full w-12 h-12 p-0 bg-accent hover:bg-accent/90 text-accent-foreground shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110"
+                  aria-label="Add new shape"
+                >
                   <Plus className="w-6 h-6" />
                 </Button>
               </DropdownMenuTrigger>
@@ -90,7 +94,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
               <Button
                 variant={activeTool === tool.name ? "default" : "outline"}
                 size="icon"
-                className={`rounded-full w-12 h-12 transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${activeTool === tool.name ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2' : 'hover:bg-accent/20'}`}
+                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${activeTool === tool.name ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2' : 'hover:bg-accent/20'}`}
                 onClick={() => setActiveTool(tool.name)}
                 aria-label={tool.ariaLabel}
               >
@@ -113,7 +117,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
               <Button
                 variant="outline"
                 size="icon"
-                className={`rounded-full w-12 h-12 transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${tool.destructive ? 'hover:bg-destructive/20 hover:text-destructive' : 'hover:bg-accent/20'}`}
+                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${tool.destructive ? 'hover:bg-destructive/20 hover:text-destructive' : 'hover:bg-accent/20'}`}
                 onClick={tool.action}
                 aria-label={tool.ariaLabel}
               >
@@ -132,7 +136,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full w-12 h-12 transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-accent/20"
+                className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-accent/20"
                 onClick={onToggleShadows}
                 aria-label={showShadows ? "Hide Shadows" : "Show Shadows"}
               >
