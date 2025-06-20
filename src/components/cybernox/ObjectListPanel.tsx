@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Plane as PlaneIconLucide, Pyramid, Cylinder as CylinderIcon, Type } from "lucide-react"; // Changed CircleDot to Circle
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -18,9 +18,9 @@ const getIconForType = (type: SceneObject['type']) => {
     case "Cube":
       return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Sphere":
-      return <Circle className="w-4 h-4 mr-2 text-muted-foreground" />; // Changed from CircleDot
+      return <Circle className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Plane":
-      return <PlaneIconLucide className="w-4 h-4 mr-2 text-muted-foreground" />;
+      return <Square className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Pyramid":
       return <Pyramid className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Cylinder":

@@ -113,8 +113,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
-    gridHelperRef.current = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff); // White grid lines
-    (gridHelperRef.current.material as THREE.Material).opacity = 0.5; // Make them semi-transparent
+    gridHelperRef.current = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff);
+    (gridHelperRef.current.material as THREE.Material).opacity = 0.5; 
     (gridHelperRef.current.material as THREE.Material).transparent = true;
     sceneRef.current.add(gridHelperRef.current);
 
@@ -131,7 +131,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     groundPlaneRef.current = new THREE.Mesh(
       new THREE.PlaneGeometry(1000, 1000),
-      new THREE.ShadowMaterial({ color: 0x080808, opacity: 0.3 }) // Darker for dark theme
+      new THREE.ShadowMaterial({ color: 0x080808, opacity: 0.3 }) 
     );
     groundPlaneRef.current.rotation.x = -Math.PI / 2;
     groundPlaneRef.current.position.y = -0.01; // Slightly below the grid to prevent Z-fighting
@@ -162,7 +162,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     };
     window.addEventListener('resize', handleResize);
     
-    // MutationObserver to detect theme changes (dark/light mode toggle)
     const observer = new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class' && mountRef.current && sceneRef.current) {
@@ -171,9 +170,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-    observer.observe(document.documentElement, { attributes: true }); // Observe <html> for class changes
+    observer.observe(document.documentElement, { attributes: true }); 
 
-    handleResize(); // Initial call
+    handleResize(); 
 
     const onPointerDown = ( event: PointerEvent ) => {
         if (!mountRef.current || !raycasterRef.current || !pointerRef.current || !cameraRef.current || transformControlsRef.current?.dragging) return;
@@ -341,7 +340,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             }
             geometry = textGeo;
           } else {
-            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); // Placeholder
+            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); 
           }
         } else {
             switch (objData.type) {

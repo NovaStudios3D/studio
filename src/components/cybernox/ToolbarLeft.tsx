@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Plane as PlaneIconLucide, Eye, EyeOff } from "lucide-react"; // Changed Hand to Move3d, CircleDot to Circle
+import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Eye, EyeOff } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -35,7 +35,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onToggleShadows,
 }) => {
   const mainTools = [
-    { name: "Move" as ActiveTool, icon: <Move3d className="w-5 h-5" />, ariaLabel: "Move Tool (M)" }, // Changed icon
+    { name: "Move" as ActiveTool, icon: <Move3d className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
     { name: "Rotate" as ActiveTool, icon: <RotateCw className="w-5 h-5" />, ariaLabel: "Rotate Tool (R)" },
     { name: "Scale" as ActiveTool, icon: <Maximize2 className="w-5 h-5" />, ariaLabel: "Scale Tool (S)" },
   ];
@@ -47,8 +47,8 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
 
   const shapes: { name: SceneObject['type']; icon: JSX.Element; displayName: string }[] = [
     { name: "Cube", icon: <Box className="w-4 h-4 mr-2" />, displayName: "Cube" },
-    { name: "Sphere", icon: <Circle className="w-4 h-4 mr-2" />, displayName: "Sphere" }, // Changed from CircleDot
-    { name: "Plane", icon: <PlaneIconLucide className="w-4 h-4 mr-2" />, displayName: "Plane" },
+    { name: "Sphere", icon: <Circle className="w-4 h-4 mr-2" />, displayName: "Sphere" },
+    { name: "Plane", icon: <Square className="w-4 h-4 mr-2" />, displayName: "Plane" },
     { name: "Pyramid", icon: <Pyramid className="w-4 h-4 mr-2" />, displayName: "Pyramid" },
     { name: "Cylinder", icon: <CylinderIcon className="w-4 h-4 mr-2" />, displayName: "Cylinder" },
     { name: "3DText", icon: <Type className="w-4 h-4 mr-2" />, displayName: "3D Text" },
@@ -90,13 +90,9 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
         {/* Main Tools: Move, Rotate, Scale */}
         {mainTools.map((tool) => {
           const isActive = activeTool === tool.name;
-          let toolSpecificClass = '';
-          if (isActive) {
-            toolSpecificClass = 'ring-2 ring-primary ring-offset-background ring-offset-2';
-          } else {
-            // Apply subtle orange hover only when inactive
-            toolSpecificClass = 'hover:bg-accent/20';
-          }
+          const dynamicClasses = isActive
+            ? 'ring-2 ring-primary ring-offset-background ring-offset-2' // Active: blue ring
+            : 'hover:bg-primary/20'; // Inactive: blue hover (primary with some transparency)
           
           return (
             <Tooltip key={tool.name}>
@@ -104,7 +100,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
                 <Button
                   variant="outline"
                   size="icon"
-                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${toolSpecificClass} ${isActive ? '' : 'hover:bg-accent/20'}`}
+                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${dynamicClasses}`}
                   onClick={() => setActiveTool(tool.name)}
                   aria-label={tool.ariaLabel}
                   aria-pressed={isActive}
