@@ -92,9 +92,9 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
           <Tooltip key={tool.name}>
             <TooltipTrigger asChild>
               <Button
-                variant={activeTool === tool.name ? "default" : "outline"}
+                variant="outline"
                 size="icon"
-                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${activeTool === tool.name ? 'bg-accent text-accent-foreground hover:bg-accent/90 ring-2 ring-accent ring-offset-background ring-offset-2' : 'hover:bg-accent/20'}`}
+                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${activeTool === tool.name ? 'ring-2 ring-accent ring-offset-background ring-offset-2' : ''}`}
                 onClick={() => setActiveTool(tool.name)}
                 aria-label={tool.ariaLabel}
               >
