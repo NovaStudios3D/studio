@@ -371,6 +371,14 @@ export default function Cybernox3DPage() {
         setPreviewAudioData(null);
     }
   }, [previewAudioData, addSceneObject, sceneObjects]);
+  
+  const handleObjectListClick = useCallback((objectId: string) => {
+    setSelectedObjectId(objectId);
+    const obj = sceneObjects.find(o => o.id === objectId);
+    if (obj && obj.type === 'Audio') {
+        threeSceneRef.current?.playAudio(obj.id);
+    }
+  }, [sceneObjects]);
 
 
   return (
@@ -420,7 +428,7 @@ export default function Cybernox3DPage() {
                 <ObjectListPanel
                   objects={sceneObjects}
                   selectedObjectId={selectedObjectId}
-                  onSelectObject={setSelectedObjectId}
+                  onSelectObject={handleObjectListClick}
                   onToggleVisibility={toggleObjectVisibility}
                   onTogglePanel={() => setIsObjectListVisible(false)}
                 />

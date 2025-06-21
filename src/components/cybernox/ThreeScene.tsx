@@ -26,6 +26,7 @@ interface ThreeSceneProps {
 
 export interface ThreeSceneRef {
   exportScene: (format: string) => void;
+  playAudio: (id: string) => void;
 }
 
 const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
@@ -481,6 +482,17 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             link.href = URL.createObjectURL(blob);
             link.download = `scene.obj`;
             link.click();
+        }
+    },
+    playAudio(id: string) {
+        const audio = audioElementsRef.current.get(id);
+        if (audio) {
+            if (audio.paused) {
+                audio.play().catch(e => console.error("Audio play failed:", e));
+            } else {
+                audio.pause();
+                audio.currentTime = 0;
+            }
         }
     }
   }));
