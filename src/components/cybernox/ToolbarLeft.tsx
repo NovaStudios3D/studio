@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square } from "lucide-react";
+import { Move, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -30,7 +30,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onCopyObject,
 }) => {
   const mainTools = [
-    { name: "Move" as ActiveTool, icon: <Move3d className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
+    { name: "Move" as ActiveTool, icon: <Move className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
     { name: "Rotate" as ActiveTool, icon: <RotateCw className="w-5 h-5" />, ariaLabel: "Rotate Tool (R)" },
     { name: "Scale" as ActiveTool, icon: <Maximize2 className="w-5 h-5" />, ariaLabel: "Scale Tool (S)" },
   ];
@@ -120,7 +120,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
               <Button
                 variant="outline"
                 size="icon"
-                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${tool.destructive ? 'hover:bg-destructive/20 hover:text-destructive' : 'hover:bg-accent/20'}`}
+                className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${tool.destructive ? 'hover:bg-destructive/20 hover:text-destructive' : 'hover:bg-primary/20'}`}
                 onClick={tool.action}
                 aria-label={tool.ariaLabel}
               >
