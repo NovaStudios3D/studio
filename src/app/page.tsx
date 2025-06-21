@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import { PanelRightOpen } from 'lucide-react';
 import type { ThreeSceneRef } from '@/components/cybernox/ThreeScene';
+import ModelPreview from '@/components/cybernox/ModelPreview';
 
 export interface SceneObject {
   id: string;
@@ -77,6 +78,8 @@ export default function Cybernox3DPage() {
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube-1");
   const [activeTool, setActiveTool] = useState<ActiveTool>('Move');
   const [isObjectListVisible, setIsObjectListVisible] = useState(true);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewModelData, setPreviewModelData] = useState<{ src: string | ArrayBuffer; name: string; format: string; } | null>(null);
 
 
   const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string | ArrayBuffer, name?: string, format?: string } = {}) => {
@@ -272,18 +275,19 @@ export default function Cybernox3DPage() {
       reader.onload = (readEvent) => {
         const content = readEvent.target?.result;
         if (content) {
-            addSceneObject('Model', { src: content, name: file.name, format });
+            setPreviewModelData({ src: content, name: file.name, format });
+            setIsPreviewModalOpen(true);
         }
       };
       
-      if (format === 'gltf' || format === 'glb') {
+      if (format === 'gltf' || format === 'glb' || format === 'stl') {
         reader.readAsArrayBuffer(file);
       } else {
         reader.readAsText(file);
       }
     };
     input.click();
-  }, [addSceneObject, sceneObjects]);
+  }, []);
   
   const handleExportScene = useCallback((format: string) => {
     if (threeSceneRef.current) {
@@ -291,6 +295,14 @@ export default function Cybernox3DPage() {
         toast({ title: "Exporting Scene", description: `Your scene is being exported as a .${format} file.` });
     }
   }, []);
+  
+  const handleAddToSceneFromPreview = useCallback(() => {
+    if (previewModelData) {
+      addSceneObject('Model', previewModelData);
+      setIsPreviewModalOpen(false);
+      setPreviewModelData(null);
+    }
+  }, [previewModelData, addSceneObject]);
 
 
   return (
@@ -347,6 +359,12 @@ export default function Cybernox3DPage() {
             </aside>
         )}
       </div>
+      <ModelPreview
+        isOpen={isPreviewModalOpen}
+        onOpenChange={setIsPreviewModalOpen}
+        modelData={previewModelData}
+        onAddToScene={handleAddToSceneFromPreview}
+      />
     </TooltipProvider>
   );
 }
