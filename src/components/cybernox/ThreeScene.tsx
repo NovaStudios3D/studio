@@ -1,20 +1,13 @@
+
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import type { SceneObject, ActiveTool } from '@/app/page';
-
-interface ThreeSceneProps {
-  sceneObjects: SceneObject[];
-  setSceneObjects: React.Dispatch<React.SetStateAction<SceneObject[]>>;
-  selectedObjectId: string | null;
-  setSelectedObjectId: (id: string | null) => void;
-  activeTool: ActiveTool;
-}
 
 const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json';
 
@@ -40,9 +33,164 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
   const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const threeObjectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
+  const particleSystemsRef = useRef<Map<string, { system: THREE.Points, update: () => void }>>(new Map());
 
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const pointerRef = useRef<THREE.Vector2 | null>(null);
+  
+  const { dotTexture, sparkTexture } = useMemo(() => {
+    const createParticleTexture = (type: 'dot' | 'spark') => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Could not get 2d context from canvas');
+
+        if (type === 'dot') {
+            context.beginPath();
+            context.arc(64, 64, 60, 0, Math.PI * 2);
+            context.fillStyle = '#ffffff';
+            context.fill();
+        } else if (type === 'spark') {
+            const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(0.2, 'rgba(255,255,0,1)');
+            gradient.addColorStop(0.4, 'rgba(255,165,0,0.5)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 128, 128);
+        }
+        
+        return new THREE.CanvasTexture(canvas);
+    };
+    
+    // This check prevents execution on the server
+    if (typeof window === 'undefined') {
+        return { dotTexture: null, sparkTexture: null };
+    }
+
+    return { 
+        dotTexture: createParticleTexture('dot'), 
+        sparkTexture: createParticleTexture('spark') 
+    };
+  }, []);
+
+  const createParticleSystem = useCallback((objData: SceneObject) => {
+    let system: THREE.Points;
+    let update: () => void = () => {};
+
+    const particleCount = objData.particleType === 'Fire' ? 2000 : 5000;
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const geometry = new THREE.BufferGeometry();
+    const color = new THREE.Color();
+
+    switch(objData.particleType) {
+        case 'Fire': {
+            const material = new THREE.PointsMaterial({
+                size: 0.3,
+                map: sparkTexture,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                vertexColors: true
+            });
+
+            for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                positions[i3] = (Math.random() - 0.5) * 1;
+                positions[i3 + 1] = Math.random() * 0.2;
+                positions[i3 + 2] = (Math.random() - 0.5) * 1;
+
+                velocities[i3] = (Math.random() - 0.5) * 0.01;
+                velocities[i3 + 1] = Math.random() * 0.05 + 0.02;
+                velocities[i3 + 2] = (Math.random() - 0.5) * 0.01;
+
+                color.setHSL(0.1, 1.0, 0.5);
+                colors[i3] = color.r;
+                colors[i3 + 1] = color.g;
+                colors[i3 + 2] = color.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            system = new THREE.Points(geometry, material);
+            
+            update = () => {
+                const pos = system.geometry.attributes.position.array as Float32Array;
+                const col = system.geometry.attributes.color.array as Float32Array;
+
+                for (let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
+                    pos[i3+1] += velocities[i3 + 1];
+                    col[i3+1] *= 0.985;
+                    
+                    if (pos[i3+1] > 5) {
+                       pos[i3+1] = Math.random() * 0.2;
+                       col[i3+1] = 1.0;
+                    }
+                }
+                system.geometry.attributes.position.needsUpdate = true;
+                system.geometry.attributes.color.needsUpdate = true;
+            };
+            break;
+        }
+        case 'Snow': {
+            const material = new THREE.PointsMaterial({
+                size: 0.1,
+                map: dotTexture,
+                blending: THREE.NormalBlending,
+                depthWrite: false,
+                transparent: true,
+                vertexColors: true
+            });
+            
+            for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                positions[i3] = (Math.random() - 0.5) * 20;
+                positions[i3 + 1] = Math.random() * 15;
+                positions[i3 + 2] = (Math.random() - 0.5) * 20;
+
+                velocities[i3] = (Math.random() - 0.5) * 0.002;
+                velocities[i3 + 1] = -Math.random() * 0.03 - 0.02;
+                velocities[i3 + 2] = (Math.random() - 0.5) * 0.002;
+
+                color.setHSL(1, 0, 1);
+                colors[i3] = color.r;
+                colors[i3 + 1] = color.g;
+                colors[i3 + 2] = color.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            system = new THREE.Points(geometry, material);
+
+            update = () => {
+                const pos = system.geometry.attributes.position.array as Float32Array;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
+                    pos[i3] += velocities[i3];
+                    pos[i3 + 1] += velocities[i3 + 1];
+                    pos[i3 + 2] += velocities[i3 + 2];
+                    
+                    if (pos[i3+1] < 0) {
+                       pos[i3+1] = 15;
+                    }
+                }
+                system.geometry.attributes.position.needsUpdate = true;
+            };
+            break;
+        }
+        default:
+            system = new THREE.Points(); // Empty system for unimplemented effects
+            break;
+    }
+
+    system.userData = { id: objData.id, type: objData.type };
+    return { system, update };
+  }, [dotTexture, sparkTexture]);
 
   useEffect(() => {
     setIsClient(true);
@@ -140,6 +288,11 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     const animate = () => {
       requestAnimationFrame(animate);
       orbitControlsRef.current?.update();
+
+      particleSystemsRef.current.forEach(particleSystem => {
+        particleSystem.update();
+      });
+
       if (sceneRef.current && cameraRef.current && rendererRef.current) {
           rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
@@ -220,6 +373,14 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
           }
       });
       threeObjectsRef.current.clear();
+      particleSystemsRef.current.forEach((particleSystem, id) => {
+          sceneRef.current?.remove(particleSystem.system);
+          particleSystem.system.geometry.dispose();
+          if (particleSystem.system.material) {
+            (particleSystem.system.material as THREE.Material).dispose();
+          }
+      });
+      particleSystemsRef.current.clear();
       if (rendererRef.current?.domElement && currentMount.contains(rendererRef.current.domElement)) {
          currentMount.removeChild(rendererRef.current.domElement);
       }
@@ -254,11 +415,39 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
     });
 
+    particleSystemsRef.current.forEach((particleSystem, id) => {
+        if (!currentObjectIds.has(id)) {
+            sceneRef.current?.remove(particleSystem.system);
+            particleSystem.system.geometry.dispose();
+            (particleSystem.system.material as THREE.Material).dispose();
+            particleSystemsRef.current.delete(id);
+        }
+    });
+
     sceneObjects.forEach(objData => {
       if (selectedObjectId === objData.id && !(objData.visible ?? true)) {
         setSelectedObjectId(null);
       }
       
+      if (objData.type === 'ParticleSystem') {
+          let existingSystem = particleSystemsRef.current.get(objData.id);
+          if (existingSystem) {
+              existingSystem.system.position.set(...objData.position);
+              existingSystem.system.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
+              existingSystem.system.scale.set(...objData.scale);
+              existingSystem.system.visible = objData.visible ?? true;
+          } else {
+              const newSystem = createParticleSystem(objData);
+              if (newSystem.system) {
+                  newSystem.system.position.set(...objData.position);
+                  newSystem.system.visible = objData.visible ?? true;
+                  particleSystemsRef.current.set(objData.id, newSystem);
+                  sceneRef.current?.add(newSystem.system);
+              }
+          }
+          return;
+      }
+
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
       
       let material;
@@ -402,7 +591,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-  }, [isClient, sceneObjects, sceneRef, font, selectedObjectId, setSelectedObjectId, setSceneObjects]);
+  }, [isClient, sceneObjects, sceneRef, font, selectedObjectId, setSelectedObjectId, setSceneObjects, createParticleSystem]);
 
 
   useEffect(() => {
@@ -441,3 +630,5 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 };
 
 export default ThreeScene;
+
+    

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -32,6 +32,8 @@ const getIconForType = (type: SceneObject['type']) => {
         return <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Video":
         return <Video className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "ParticleSystem":
+        return <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />;
     default:
       return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
   }
@@ -64,6 +66,7 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
                       className={`flex-1 justify-start h-auto py-2 px-3 text-left ${selectedObjectId === obj.id ? 'font-semibold' : ''}`}
                       onClick={() => onSelectObject(obj.id)}
                       aria-current={selectedObjectId === obj.id ? "page" : undefined}
+                      disabled={obj.type === 'ParticleSystem'}
                     >
                       {getIconForType(obj.type)}
                       <span className="truncate flex-1">{obj.name}</span>

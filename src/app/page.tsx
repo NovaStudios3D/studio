@@ -17,7 +17,7 @@ import { PanelRightOpen } from 'lucide-react';
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video';
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
@@ -25,6 +25,7 @@ export interface SceneObject {
   text?: string; 
   visible?: boolean;
   src?: string;
+  particleType?: string;
 }
 
 export type ActiveTool = 'Move' | 'Rotate' | 'Scale' | null;
@@ -198,11 +199,31 @@ export default function Cybernox3DPage() {
   }, []);
 
   const handleAddParticle = useCallback((particleType: string) => {
-    toast({
-      title: "Coming Soon!",
-      description: `${particleType} particle effects are not yet implemented.`,
-    });
-  }, [toast]);
+    const newObjectId = `object-${Date.now()}`;
+    
+    let counter = 1;
+    let baseName = particleType;
+    let newObjectName = baseName;
+    while (sceneObjects.some(obj => obj.name === `${baseName} ${counter}`)) {
+        counter++;
+    }
+    newObjectName = `${baseName} ${counter}`;
+
+    const newObject: SceneObject = {
+      id: newObjectId,
+      name: newObjectName,
+      type: 'ParticleSystem',
+      particleType: particleType,
+      position: [0, 1.5, 0], 
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+      color: '#FFFFFF',
+      visible: true,
+    };
+
+    setSceneObjects(prevObjects => [...prevObjects, newObject]);
+    toast({ title: "Effect Added", description: `${newObjectName} added to the scene.` });
+  }, [sceneObjects, toast]);
 
   const handleImportMedia = useCallback((accept: 'image/*' | 'video/*') => {
     const input = document.createElement('input');
