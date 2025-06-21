@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,7 +69,6 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   ];
 
   return (
-    <TooltipProvider delayDuration={100}>
       <div className="p-3 bg-card border-r border-border flex flex-col items-center space-y-3 shadow-md">
         {/* Add Shape/Effect Dropdown */}
         <DropdownMenu>
@@ -185,7 +184,6 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
           </Tooltip>
         ))}
       </div>
-    </TooltipProvider>
   );
 };
 

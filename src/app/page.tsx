@@ -234,28 +234,28 @@ export default function Cybernox3DPage() {
 
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden antialiased font-body bg-background">
-      <ToolbarLeft
-        activeTool={activeTool}
-        setActiveTool={setActiveTool}
-        onAddShape={addSceneObject}
-        onDeleteObject={deleteSelectedObject}
-        onCopyObject={copySelectedObject}
-        onAddParticle={handleAddParticle}
-        onImportImage={() => handleImportMedia('image/*')}
-        onImportVideo={() => handleImportMedia('video/*')}
-      />
-      <main className="flex-1 relative overflow-hidden">
-        <ThreeScene
-          sceneObjects={sceneObjects}
-          setSceneObjects={setSceneObjects}
-          selectedObjectId={selectedObjectId}
-          setSelectedObjectId={setSelectedObjectId}
+    <TooltipProvider>
+      <div className="flex h-screen w-screen overflow-hidden antialiased font-body bg-background">
+        <ToolbarLeft
           activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          onAddShape={addSceneObject}
+          onDeleteObject={deleteSelectedObject}
+          onCopyObject={copySelectedObject}
+          onAddParticle={handleAddParticle}
+          onImportImage={() => handleImportMedia('image/*')}
+          onImportVideo={() => handleImportMedia('video/*')}
         />
-        {!isObjectListVisible && (
-          <div className="absolute top-4 right-4 z-10">
-            <TooltipProvider>
+        <main className="flex-1 relative overflow-hidden">
+          <ThreeScene
+            sceneObjects={sceneObjects}
+            setSceneObjects={setSceneObjects}
+            selectedObjectId={selectedObjectId}
+            setSelectedObjectId={setSelectedObjectId}
+            activeTool={activeTool}
+          />
+          {!isObjectListVisible && (
+            <div className="absolute top-4 right-4 z-10">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="icon" onClick={() => setIsObjectListVisible(true)} className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110">
@@ -267,23 +267,23 @@ export default function Cybernox3DPage() {
                   <p>Show Objects Panel</p>
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          </div>
-        )}
-      </main>
-      {isObjectListVisible && (
-          <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
-            <div className="flex-grow min-h-0">
-              <ObjectListPanel
-                objects={sceneObjects}
-                selectedObjectId={selectedObjectId}
-                onSelectObject={setSelectedObjectId}
-                onToggleVisibility={toggleObjectVisibility}
-                onTogglePanel={() => setIsObjectListVisible(false)}
-              />
             </div>
-          </aside>
-      )}
-    </div>
+          )}
+        </main>
+        {isObjectListVisible && (
+            <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
+              <div className="flex-grow min-h-0">
+                <ObjectListPanel
+                  objects={sceneObjects}
+                  selectedObjectId={selectedObjectId}
+                  onSelectObject={setSelectedObjectId}
+                  onToggleVisibility={toggleObjectVisibility}
+                  onTogglePanel={() => setIsObjectListVisible(false)}
+                />
+              </div>
+            </aside>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }
