@@ -16,7 +16,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface ModelPreviewProps {
   isOpen: boolean;
@@ -40,26 +40,36 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
     scene: THREE.Scene,
     data: { src: string | ArrayBuffer; format: string }
   ) => {
-    let loader: GLTFLoader | OBJLoader | STLLoader;
     
+    const onModelError = (err: any) => {
+        console.error('Error loading model for preview:', err);
+        setError(`Failed to load model. The file might be corrupted or in an unsupported format.`);
+        setIsLoading(false);
+    };
+
     const onModelLoad = (loadedModel: THREE.Object3D) => {
         const box = new THREE.Box3().setFromObject(loadedModel);
+        
+        if (box.isEmpty()) {
+            onModelError(new Error("Model appears to be empty or has no visible geometry."));
+            return;
+        }
+
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
 
         loadedModel.position.sub(center);
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 5 / maxDim;
-        loadedModel.scale.set(scale, scale, scale);
+        if (maxDim > 0 && Number.isFinite(maxDim)) {
+            const scale = 5 / maxDim;
+            loadedModel.scale.setScalar(scale);
+        } else {
+            // If model has no size, don't try to scale it.
+            loadedModel.scale.setScalar(1);
+        }
 
         scene.add(loadedModel);
-        setIsLoading(false);
-    };
-
-    const onModelError = (err: any) => {
-        console.error('Error loading model for preview:', err);
-        setError(`Failed to load model. The file might be corrupted or in an unsupported format.`);
         setIsLoading(false);
     };
 
@@ -67,16 +77,14 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
       switch (data.format) {
           case 'gltf':
           case 'glb':
-              loader = new GLTFLoader();
-              (loader as GLTFLoader).parse(data.src as ArrayBuffer, '', gltf => onModelLoad(gltf.scene), onModelError);
+              new GLTFLoader().parse(data.src as ArrayBuffer, '', gltf => onModelLoad(gltf.scene), onModelError);
               break;
           case 'obj':
-              loader = new OBJLoader();
-              onModelLoad(loader.parse(data.src as string));
+              const objModel = new OBJLoader().parse(data.src as string);
+              onModelLoad(objModel);
               break;
           case 'stl':
-              loader = new STLLoader();
-              const geometry = loader.parse(data.src as ArrayBuffer);
+              const geometry = new STLLoader().parse(data.src as ArrayBuffer);
               const material = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.1, roughness: 0.8 });
               const model = new THREE.Mesh(geometry, material);
               onModelLoad(model);
@@ -99,8 +107,10 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
     }
 
     const currentMount = mountRef.current;
-    if (currentMount.childElementCount > 0) {
-      if (cleanupRef.current) cleanupRef.current();
+    
+    // Clear previous canvas if it exists
+    while (currentMount.firstChild) {
+        currentMount.removeChild(currentMount.firstChild);
     }
 
     setIsLoading(true);
@@ -147,9 +157,11 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
     const handleResize = () => {
         if (!currentMount) return;
         const { clientWidth, clientHeight } = currentMount;
-        camera.aspect = clientWidth / clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(clientWidth, clientHeight);
+        if (clientWidth > 0 && clientHeight > 0) {
+          camera.aspect = clientWidth / clientHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(clientWidth, clientHeight);
+        }
     };
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(currentMount);
@@ -157,9 +169,6 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
     cleanupRef.current = () => {
         cancelAnimationFrame(animationFrameId);
         resizeObserver.disconnect();
-        if (currentMount && currentMount.contains(renderer.domElement)) {
-            currentMount.removeChild(renderer.domElement);
-        }
         scene.traverse(object => {
             if (object instanceof THREE.Mesh) {
                 object.geometry.dispose();
@@ -169,6 +178,10 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
         });
         renderer.dispose();
         controls.dispose();
+        // Remove the canvas from the DOM on cleanup
+        if (currentMount && currentMount.contains(renderer.domElement)) {
+            currentMount.removeChild(renderer.domElement);
+        }
     };
 
     return () => {
@@ -181,10 +194,7 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
 
   const handleDialogClose = (open: boolean) => {
     if (!open) {
-        if (cleanupRef.current) {
-            cleanupRef.current();
-            cleanupRef.current = null;
-        }
+        // Cleanup is now handled by the useEffect return function
     }
     onOpenChange(open);
   }
@@ -209,13 +219,15 @@ const ModelPreview: React.FC<ModelPreviewProps> = ({ isOpen, onOpenChange, model
             </div>
           )}
           {error && (
-             <div className="absolute inset-0 flex items-center justify-center bg-destructive/90 text-destructive-foreground p-4 text-center">
-              <p>Error: {error}</p>
+             <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/90 text-destructive-foreground p-4 text-center">
+              <AlertTriangle className="w-12 h-12 mb-4" />
+              <p className="font-semibold">Error Loading Model</p>
+              <p className="text-sm">{error}</p>
             </div>
           )}
         </div>
         <DialogFooter className="p-6 pt-4">
-          <Button variant="outline" onClick={() => handleDialogClose(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={onAddToScene} disabled={isLoading || !!error}>Add to Scene</Button>
         </DialogFooter>
       </DialogContent>
