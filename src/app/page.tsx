@@ -11,7 +11,6 @@ import {
 import ThreeScene from "@/components/cybernox/ThreeScene";
 import ToolbarLeft from "@/components/cybernox/ToolbarLeft";
 import ObjectListPanel from "@/components/cybernox/ObjectListPanel";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import { PanelRightOpen } from 'lucide-react';
 import type { ThreeSceneRef } from '@/components/cybernox/ThreeScene';
@@ -78,7 +77,6 @@ const AudioPreview: React.FC<AudioPreviewProps> = ({ isOpen, onOpenChange, audio
 };
 
 export default function Cybernox3DPage() {
-  const { toast } = useToast();
   const threeSceneRef = useRef<ThreeSceneRef>(null);
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([
     {
@@ -149,7 +147,6 @@ export default function Cybernox3DPage() {
     if (type === '3DText') {
       const userText = window.prompt("Enter text for the 3D object:", "Hello");
       if (userText === null || userText.trim() === "") {
-        toast({ title: "Text Input Cancelled", description: "No text provided, 3D Text object not added.", variant: "destructive" });
         return;
       }
       textContent = userText;
@@ -183,26 +180,23 @@ export default function Cybernox3DPage() {
 
     setSceneObjects(prevObjects => [...prevObjects, newObject]);
     setSelectedObjectId(newObjectId);
-    toast({ title: "Object Added", description: `${newObject.name} added to the scene.` });
-  }, [sceneObjects, toast]);
+  }, [sceneObjects]);
 
   const deleteSelectedObject = useCallback(() => {
     if (!selectedObjectId) {
-      toast({ title: "No object selected", description: "Please select an object to delete.", variant: "destructive" });
       return;
     }
     const objectToDelete = sceneObjects.find(obj => obj.id === selectedObjectId);
     setSceneObjects(prevObjects => prevObjects.filter(obj => obj.id !== selectedObjectId));
 
     if (objectToDelete) {
-        toast({ title: "Object Deleted", description: `${objectToDelete.name} deleted.`, variant: "destructive" });
+        // toast({ title: "Object Deleted", description: `${objectToDelete.name} deleted.`, variant: "destructive" });
     }
     setSelectedObjectId(null);
-  }, [selectedObjectId, sceneObjects, toast]);
+  }, [selectedObjectId, sceneObjects]);
 
   const copySelectedObject = useCallback(() => {
     if (!selectedObjectId) {
-      toast({ title: "No object selected", description: "Please select an object to copy.", variant: "destructive" });
       return;
     }
     const originalObject = sceneObjects.find(obj => obj.id === selectedObjectId);
@@ -236,12 +230,8 @@ export default function Cybernox3DPage() {
       };
       setSceneObjects(prevObjects => [...prevObjects, newObject]);
       setSelectedObjectId(newObjectId);
-      toast({
-        title: "Object Copied",
-        description: `${newObject.name} created as a copy of ${originalObject.name}.`,
-      });
     }
-  }, [selectedObjectId, sceneObjects, toast]);
+  }, [selectedObjectId, sceneObjects]);
 
   const toggleObjectVisibility = useCallback((objectId: string) => {
     setSceneObjects(prevObjects =>
@@ -275,8 +265,7 @@ export default function Cybernox3DPage() {
     };
 
     setSceneObjects(prevObjects => [...prevObjects, newObject]);
-    toast({ title: "Effect Added", description: `${newObjectName} added to the scene.` });
-  }, [sceneObjects, toast]);
+  }, [sceneObjects]);
 
   const handleImportMedia = useCallback((accept: 'image/*' | 'video/*') => {
     const input = document.createElement('input');
@@ -353,7 +342,6 @@ export default function Cybernox3DPage() {
   const handleExportScene = useCallback((format: string) => {
     if (threeSceneRef.current) {
         threeSceneRef.current.exportScene(format);
-        toast({ title: "Exporting Scene", description: `Your scene is being exported as a .${format} file.` });
     }
   }, []);
   

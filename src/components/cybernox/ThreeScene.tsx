@@ -215,8 +215,8 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                 blending: THREE.NormalBlending,
                 depthWrite: false,
                 transparent: true,
-                opacity: 0.7,
-                color: isSnow ? '#FFFFFF' : '#87CEEB'
+                opacity: isSnow ? 0.9 : 0.7,
+                color: isSnow ? '#FFFFFF' : '#4A90E2'
             });
             
             for (let i = 0; i < particleCount; i++) {
