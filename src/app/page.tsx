@@ -371,6 +371,50 @@ export default function Cybernox3DPage() {
     }
   }, [sceneObjects]);
 
+  const handleExportSceneCYB = useCallback(() => {
+    try {
+      const sceneData = JSON.stringify(sceneObjects, null, 2);
+      const blob = new Blob([sceneData], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `cybernox-scene.cyb`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to export CYB scene:", error);
+    }
+  }, [sceneObjects]);
+
+  const handleImportSceneCYB = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.cyb,application/json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (readEvent) => {
+        try {
+          const content = readEvent.target?.result as string;
+          if (content) {
+            const importedObjects = JSON.parse(content);
+            if (Array.isArray(importedObjects)) {
+              setSceneObjects(importedObjects);
+              setSelectedObjectId(null);
+            } else {
+              console.error("Invalid .cyb file format: root should be an array.");
+            }
+          }
+        } catch (error) {
+          console.error("Failed to import CYB scene:", error);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, []);
 
   return (
     <TooltipProvider>
@@ -387,6 +431,8 @@ export default function Cybernox3DPage() {
           onImportAudio={handleImportAudio}
           onImportModel={handleImportModel}
           onExportScene={handleExportScene}
+          onImportCYB={handleImportSceneCYB}
+          onExportCYB={handleExportSceneCYB}
         />
         <main className="flex-1 relative overflow-hidden">
           <ThreeScene

@@ -31,6 +31,8 @@ interface ToolbarLeftProps {
   onImportAudio: () => void;
   onImportModel: (format: string) => void;
   onExportScene: (format: string) => void;
+  onImportCYB: () => void;
+  onExportCYB: () => void;
 }
 
 const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
@@ -45,6 +47,8 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onImportAudio,
   onImportModel,
   onExportScene,
+  onImportCYB,
+  onExportCYB,
 }) => {
   const mainTools = [
     { name: "Move" as ActiveTool, icon: <Move3d className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
@@ -108,6 +112,17 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent side="right" className="w-56">
+            <DropdownMenuLabel>File</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer" onSelect={onImportCYB}>
+              <Upload className="w-4 h-4 mr-2" />
+              <span>Import Scene (.cyb)</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onSelect={onExportCYB}>
+              <Download className="w-4 h-4 mr-2" />
+              <span>Export Scene (.cyb)</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuLabel>Add to Scene</DropdownMenuLabel>
             <DropdownMenuSeparator />
              <DropdownMenuItem className="cursor-pointer" onSelect={() => onAddShape('Skybox')}>
@@ -179,7 +194,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <Download className="w-4 h-4 mr-2" />
-                <span>Export Scene</span>
+                <span>Export As...</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent>
