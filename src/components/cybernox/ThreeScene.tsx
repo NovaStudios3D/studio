@@ -57,6 +57,10 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   const pointerRef = useRef<THREE.Vector2 | null>(null);
   
   const { dotTexture, sparkTexture, smokeTexture } = useMemo(() => {
+    if (typeof window === 'undefined') {
+        return { dotTexture: null, sparkTexture: null, smokeTexture: null };
+    }
+    
     const createParticleTexture = (type: 'dot' | 'spark' | 'smoke') => {
         const canvas = document.createElement('canvas');
         canvas.width = 128;
@@ -87,10 +91,6 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         
         return new THREE.CanvasTexture(canvas);
     };
-    
-    if (typeof window === 'undefined') {
-        return { dotTexture: null, sparkTexture: null, smokeTexture: null };
-    }
 
     return { 
         dotTexture: createParticleTexture('dot'), 
@@ -407,6 +407,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   
   useImperativeHandle(ref, () => ({
     exportScene(format: string) {
+        if (!sceneRef.current) return;
         const exportGroup = new THREE.Group();
         
         threeObjectsRef.current.forEach((obj, id) => {
@@ -432,7 +433,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                         link.click();
                     }
                 },
-                (error) => {
+                (error: any) => {
                     console.error('An error happened during GLTF export', error);
                 },
                 options
@@ -781,36 +782,63 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
               }
               break;
             case 'Model':
-              if (objData.src && objData.format) {
-                  let loader;
-                  if (objData.format === 'gltf' || objData.format === 'glb') loader = new GLTFLoader();
-                  else if (objData.format === 'obj') loader = new OBJLoader();
-                  else if (objData.format === 'stl') loader = new STLLoader();
-
-                  if (loader) {
-                    try {
-                        const parsed = loader.parse(objData.src as any);
-                        const model = (parsed.scene || parsed) as THREE.Object3D;
-                        
-                        model.traverse(child => {
-                            if (child instanceof THREE.Mesh) {
-                                child.castShadow = true;
-                                child.receiveShadow = true;
+                if (objData.src && objData.format) {
+                    if (objData.format === 'gltf' || objData.format === 'glb') {
+                        const loader = new GLTFLoader();
+                        loader.parse(
+                            objData.src as ArrayBuffer,
+                            '',
+                            (gltf) => {
+                                const model = gltf.scene;
+                                model.traverse(child => {
+                                    if (child instanceof THREE.Mesh) {
+                                        child.castShadow = true;
+                                        child.receiveShadow = true;
+                                    }
+                                });
+                                const box = new THREE.Box3().setFromObject(model);
+                                const center = box.getCenter(new THREE.Vector3());
+                                model.position.sub(center);
+                                model.visible = objData.visible ?? true;
+                                model.userData = { id: objData.id, type: objData.type };
+                                model.position.set(...objData.position);
+                                model.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
+                                model.scale.set(...objData.scale);
+                                threeObjectsRef.current.set(objData.id, model);
+                                sceneRef.current?.add(model);
+                            },
+                            (error) => {
+                                console.error('Error parsing GLTF model', error);
                             }
-                        });
-                        
-                        const box = new THREE.Box3().setFromObject(model);
-                        const center = box.getCenter(new THREE.Vector3());
-                        model.position.sub(center);
-                        
-                        newObject = model;
+                        );
+                    } else {
+                        let loader;
+                        if (objData.format === 'obj') {
+                            loader = new OBJLoader();
+                        } else if (objData.format === 'stl') {
+                            loader = new STLLoader();
+                        }
 
-                    } catch (error) {
-                        console.error("Failed to load model:", error);
+                        if (loader) {
+                            try {
+                                const model = loader.parse(objData.src as any);
+                                model.traverse(child => {
+                                    if (child instanceof THREE.Mesh) {
+                                        child.castShadow = true;
+                                        child.receiveShadow = true;
+                                    }
+                                });
+                                const box = new THREE.Box3().setFromObject(model);
+                                const center = box.getCenter(new THREE.Vector3());
+                                model.position.sub(center);
+                                newObject = model;
+                            } catch (error) {
+                                console.error('Failed to load model:', error);
+                            }
+                        }
                     }
-                  }
-              }
-              break;
+                }
+                break;
         }
         
         if(objData.type === 'Image' && objData.src) {
