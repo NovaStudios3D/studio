@@ -159,9 +159,11 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     };
-    window.addEventListener('resize', handleResize);
     
-    const observer = new MutationObserver((mutationsList) => {
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(currentMount);
+    
+    const themeObserver = new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class' && mountRef.current && sceneRef.current) {
            const newEditorBgColor = getComputedStyle(mountRef.current).getPropertyValue('background-color') || 'hsl(var(--background))';
@@ -169,7 +171,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-    observer.observe(document.documentElement, { attributes: true }); 
+    themeObserver.observe(document.documentElement, { attributes: true }); 
 
     handleResize(); 
 
@@ -200,9 +202,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     currentMount.addEventListener( 'pointerdown', onPointerDown );
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       currentMount.removeEventListener('pointerdown', onPointerDown);
-      observer.disconnect();
+      themeObserver.disconnect();
       transformControlsRef.current?.dispose();
       orbitControlsRef.current?.dispose();
       threeObjectsRef.current.forEach((obj, id) => {
