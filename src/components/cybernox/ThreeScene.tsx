@@ -56,9 +56,9 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const pointerRef = useRef<THREE.Vector2 | null>(null);
   
-  const { dotTexture, sparkTexture, smokeTexture } = useMemo(() => {
+  const { dotTexture, sparkTexture, smokeTexture, speakerTexture } = useMemo(() => {
     if (typeof window === 'undefined') {
-        return { dotTexture: null, sparkTexture: null, smokeTexture: null };
+        return { dotTexture: null, sparkTexture: null, smokeTexture: null, speakerTexture: null };
     }
     
     const createParticleTexture = (type: 'dot' | 'spark' | 'smoke') => {
@@ -92,10 +92,44 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         return new THREE.CanvasTexture(canvas);
     };
 
+    const createSpeakerTexture = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get 2d context');
+
+        ctx.fillStyle = 'rgba(220, 220, 220, 0.9)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.moveTo(12, 22);
+        ctx.lineTo(24, 22);
+        ctx.lineTo(36, 12);
+        ctx.lineTo(36, 52);
+        ctx.lineTo(24, 42);
+        ctx.lineTo(12, 42);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(40, 32, 6, -Math.PI / 2.5, Math.PI / 2.5);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(40, 32, 12, -Math.PI / 2.5, Math.PI / 2.5);
+        ctx.stroke();
+
+        return new THREE.CanvasTexture(canvas);
+    };
+
     return { 
         dotTexture: createParticleTexture('dot'), 
         sparkTexture: createParticleTexture('spark'),
         smokeTexture: createParticleTexture('smoke'),
+        speakerTexture: createSpeakerTexture(),
     };
   }, []);
 
@@ -595,10 +629,12 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
       orbitControlsRef.current?.dispose();
       threeObjectsRef.current.forEach((obj, id) => {
           sceneRef.current?.remove(obj);
-          if (obj instanceof THREE.Mesh) {
-            obj.geometry.dispose();
-            if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-            else if (obj.material) obj.material.dispose();
+          if (obj instanceof THREE.Mesh || obj instanceof THREE.Sprite) {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+                materials.forEach(m => m?.dispose());
+            }
           }
           if (videoElementsRef.current.has(id)) {
             videoElementsRef.current.get(id)?.remove();
@@ -640,10 +676,12 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                 transformControlsRef.current.detach();
             }
             // Dispose geometry and material
-            if (obj instanceof THREE.Mesh) {
-                obj.geometry.dispose();
-                const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
-                materials.forEach(m => m?.dispose());
+            if (obj instanceof THREE.Mesh || obj instanceof THREE.Sprite) {
+                if (obj.geometry) obj.geometry.dispose();
+                 if (obj.material) {
+                    const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+                    materials.forEach(m => m?.dispose());
+                }
             } else if (obj instanceof THREE.Group) {
                 obj.traverse(child => {
                     if (child instanceof THREE.Mesh) {
@@ -703,7 +741,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
 
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
       
-      let material;
+      let material: THREE.Material | THREE.Material[];
       if (existingThreeObject instanceof THREE.Mesh) {
           material = existingThreeObject.material;
       } else {
@@ -759,6 +797,12 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             case 'Cube': geometry = new THREE.BoxGeometry(1, 1, 1); break;
             case 'Plane': case 'Image': case 'Video':
                 geometry = new THREE.PlaneGeometry(1, 1); break;
+            case 'Audio':
+                if (speakerTexture) {
+                    const spriteMaterial = new THREE.SpriteMaterial({ map: speakerTexture, color: 0xffffff });
+                    newObject = new THREE.Sprite(spriteMaterial);
+                }
+                break;
             case '3DText':
               if (font && objData.text) {
                 const textGeo = new TextGeometry(objData.text, {
@@ -905,7 +949,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         }
       }
     });
-  }, [isClient, sceneObjects, font, selectedObjectId, setSelectedObjectId, setSceneObjects, createParticleSystem]);
+  }, [isClient, sceneObjects, font, selectedObjectId, setSelectedObjectId, setSceneObjects, createParticleSystem, speakerTexture]);
 
 
   useEffect(() => {

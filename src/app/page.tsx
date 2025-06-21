@@ -20,7 +20,7 @@ import ModelPreview from '@/components/cybernox/ModelPreview';
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model';
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model' | 'Audio';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
@@ -113,7 +113,7 @@ export default function Cybernox3DPage() {
       objectColor = '#FFFFFF';
     }
     
-    if (type === 'Image' || type === 'Video' || type === 'Model') {
+    if (type === 'Image' || type === 'Video' || type === 'Model' || type === 'Audio') {
       objectColor = '#FFFFFF'
     }
 
@@ -262,6 +262,33 @@ export default function Cybernox3DPage() {
     };
     input.click();
   }, [addSceneObject, sceneObjects]);
+
+  const handleImportAudio = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (readEvent) => {
+        const src = readEvent.target?.result as string;
+        
+        let counter = 1;
+        let baseName = file.name.split('.')[0] || 'Audio';
+        let newObjectName = baseName;
+        while (sceneObjects.some(obj => obj.name === newObjectName)) {
+          newObjectName = `${baseName} (${counter})`;
+          counter++;
+        }
+        
+        addSceneObject('Audio', { src, name: newObjectName });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }, [addSceneObject, sceneObjects]);
   
   const handleImportModel = useCallback((format: string) => {
     const input = document.createElement('input');
@@ -317,6 +344,7 @@ export default function Cybernox3DPage() {
           onAddParticle={handleAddParticle}
           onImportImage={() => handleImportMedia('image/*')}
           onImportVideo={() => handleImportMedia('video/*')}
+          onImportAudio={handleImportAudio}
           onImportModel={handleImportModel}
           onExportScene={handleExportScene}
         />

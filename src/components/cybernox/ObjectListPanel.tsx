@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves, Cloud, Shapes } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves, Cloud, Shapes, AudioWaveform } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -35,6 +35,8 @@ const getIconForObject = (obj: SceneObject) => {
         return <Video className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Model":
         return <Shapes className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Audio":
+        return <AudioWaveform className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "ParticleSystem":
         switch(obj.particleType) {
             case "Fire": return <Flame className="w-4 h-4 mr-2 text-muted-foreground" />;
