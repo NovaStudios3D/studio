@@ -340,11 +340,16 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         
         if(objData.type === 'Image' && objData.src) {
             const texture = new THREE.TextureLoader().load(objData.src, (tex) => {
-                const mesh = threeObjectsRef.current.get(objData.id) as THREE.Mesh;
-                if(mesh) {
-                    const aspect = tex.image.width / tex.image.height;
-                    mesh.scale.set(mesh.scale.y * aspect, mesh.scale.y, 1);
-                }
+                const aspect = tex.image.width / tex.image.height;
+                setSceneObjects(prevObjects =>
+                    prevObjects.map(o => {
+                        if (o.id === objData.id) {
+                            const baseScaleY = o.scale[1];
+                            return { ...o, scale: [baseScaleY * aspect, baseScaleY, 1] as [number, number, number] };
+                        }
+                        return o;
+                    })
+                );
             });
             material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
         }
@@ -355,6 +360,20 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             videoEl.crossOrigin = 'anonymous';
             videoEl.loop = true;
             videoEl.muted = true;
+            
+            videoEl.onloadedmetadata = () => {
+                const aspect = videoEl.videoWidth / videoEl.videoHeight;
+                setSceneObjects(prevObjects =>
+                    prevObjects.map(o => {
+                        if (o.id === objData.id) {
+                            const baseScaleY = o.scale[1];
+                            return { ...o, scale: [baseScaleY * aspect, baseScaleY, 1] as [number, number, number] };
+                        }
+                        return o;
+                    })
+                );
+            };
+
             videoEl.play();
             videoElementsRef.current.set(objData.id, videoEl);
             const texture = new THREE.VideoTexture(videoEl);
@@ -381,7 +400,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-  }, [isClient, sceneObjects, sceneRef, font, selectedObjectId, setSelectedObjectId]);
+  }, [isClient, sceneObjects, sceneRef, font, selectedObjectId, setSelectedObjectId, setSceneObjects]);
 
 
   useEffect(() => {

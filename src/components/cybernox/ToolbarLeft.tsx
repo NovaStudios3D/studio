@@ -46,7 +46,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   ];
 
   const actionTools = [
-    { name: "Copy", icon: <Copy className="w-5 h-5" />, ariaLabel: "Copy Object (Ctrl+D)", action: onCopyObject },
+    { name: "Copy", icon: <Copy className="w-5 h-5" />, ariaLabel: "Copy Object (Ctrl+D)", action: onCopyObject, destructive: false },
     { name: "Delete", icon: <Trash2 className="w-5 h-5" />, ariaLabel: "Delete Object (Delete)", action: onDeleteObject, destructive: true },
   ];
 
@@ -124,28 +124,17 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
                     </DropdownMenuSubContent>
                 </DropdownMenuPortal>
             </DropdownMenuSub>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer" onSelect={onImportImage}>
+              <ImageIcon className="w-4 h-4 mr-2" />
+              <span>Import Image</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onSelect={onImportVideo}>
+              <Video className="w-4 h-4 mr-2" />
+              <span>Import Video</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <div className="border-t border-border w-full my-1"></div>
-
-        {/* Import Media Buttons */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-primary/20" onClick={onImportImage} aria-label="Import Image">
-              <ImageIcon className="w-5 h-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right"><p>Import Image</p></TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-primary/20" onClick={onImportVideo} aria-label="Import Video">
-              <Video className="w-5 h-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right"><p>Import Video</p></TooltipContent>
-        </Tooltip>
 
         <div className="border-t border-border w-full my-1"></div>
 

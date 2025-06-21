@@ -1,6 +1,12 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import ThreeScene from "@/components/cybernox/ThreeScene";
 import ToolbarLeft from "@/components/cybernox/ToolbarLeft";
 import ObjectListPanel from "@/components/cybernox/ObjectListPanel";
@@ -101,13 +107,20 @@ export default function Cybernox3DPage() {
       objectColor = '#FFFFFF'
     }
 
+    let newObjectScale: [number, number, number] = [1, 1, 1];
+    if (type === 'Plane') {
+        newObjectScale = [2, 2, 1];
+    } else if (type === 'Image' || type === 'Video') {
+        newObjectScale = [5, 5, 1];
+    }
+
     const newObject: SceneObject = {
       id: newObjectId,
       name: newObjectName,
       type: type,
-      position: [Math.random() * 4 - 2, 0.5 + Math.random() * 1, Math.random() * 4 - 2],
+      position: [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
       rotation: [0, 0, 0],
-      scale: type === 'Plane' ? [2,2,1] : [1, 1, 1],
+      scale: newObjectScale,
       color: objectColor,
       text: textContent,
       src: options.src,
