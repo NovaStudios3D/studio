@@ -373,7 +373,21 @@ export default function Cybernox3DPage() {
 
   const handleExportSceneCYB = useCallback(() => {
     try {
-      const sceneData = JSON.stringify(sceneObjects, null, 2);
+      const serializableObjects = sceneObjects.map(obj => {
+        if (obj.src instanceof ArrayBuffer) {
+          let binary = '';
+          const bytes = new Uint8Array(obj.src);
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = window.btoa(binary);
+          return { ...obj, src: `data:application/octet-stream;base64,${base64}`, isArrayBuffer: true };
+        }
+        return obj;
+      });
+
+      const sceneData = JSON.stringify(serializableObjects, null, 2);
       const blob = new Blob([sceneData], { type: 'application/json' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -399,9 +413,25 @@ export default function Cybernox3DPage() {
         try {
           const content = readEvent.target?.result as string;
           if (content) {
-            const importedObjects = JSON.parse(content);
-            if (Array.isArray(importedObjects)) {
-              setSceneObjects(importedObjects);
+            const importedData = JSON.parse(content);
+            if (Array.isArray(importedData)) {
+              const deserializedObjects = importedData.map((obj: any) => {
+                if (obj.isArrayBuffer && typeof obj.src === 'string' && obj.src.startsWith('data:application/octet-stream;base64,')) {
+                  const base64 = obj.src.split(',')[1];
+                  const binary_string = window.atob(base64);
+                  const len = binary_string.length;
+                  const bytes = new Uint8Array(len);
+                  for (let i = 0; i < len; i++) {
+                    bytes[i] = binary_string.charCodeAt(i);
+                  }
+                  const newObj = { ...obj, src: bytes.buffer };
+                  delete newObj.isArrayBuffer;
+                  return newObj;
+                }
+                return obj;
+              });
+
+              setSceneObjects(deserializedObjects);
               setSelectedObjectId(null);
             } else {
               console.error("Invalid .cyb file format: root should be an array.");

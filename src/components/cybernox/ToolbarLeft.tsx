@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, AudioWaveform, Sun } from "lucide-react";
+import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, Music, Sun, Shapes } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -112,17 +112,6 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent side="right" className="w-56">
-            <DropdownMenuLabel>File</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer" onSelect={onImportCYB}>
-              <Upload className="w-4 h-4 mr-2" />
-              <span>Import Scene (.cyb)</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onSelect={onExportCYB}>
-              <Download className="w-4 h-4 mr-2" />
-              <span>Export Scene (.cyb)</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuLabel>Add to Scene</DropdownMenuLabel>
             <DropdownMenuSeparator />
              <DropdownMenuItem className="cursor-pointer" onSelect={() => onAddShape('Skybox')}>
@@ -163,48 +152,56 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
                 </DropdownMenuPortal>
             </DropdownMenuSub>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer" onSelect={onImportImage}>
-              <ImageIcon className="w-4 h-4 mr-2" />
-              <span>Import Image</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onSelect={onImportVideo}>
-              <Video className="w-4 h-4 mr-2" />
-              <span>Import Video</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onSelect={onImportAudio}>
-              <AudioWaveform className="w-4 h-4 mr-2" />
-              <span>Import Audio</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Upload className="w-4 h-4 mr-2" />
-                <span>Import Model</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                  {importFormats.map((item) => (
-                    <DropdownMenuItem key={item.format} className="cursor-pointer" onSelect={() => onImportModel(item.format)}>
-                      <span>{item.name}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
+                <DropdownMenuSubTrigger>
+                    <Upload className="w-4 h-4 mr-2" />
+                    <span>Import</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem className="cursor-pointer" onSelect={onImportCYB}>
+                            Scene (.cyb)
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="cursor-pointer" onSelect={onImportImage}>
+                            Image
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer" onSelect={onImportVideo}>
+                            Video
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer" onSelect={onImportAudio}>
+                            <Music className="w-4 h-4 mr-2" />
+                            Audio
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Model</DropdownMenuLabel>
+                         {importFormats.map((item) => (
+                            <DropdownMenuItem key={item.format} className="cursor-pointer" onSelect={() => onImportModel(item.format)}>
+                            <span>{item.name}</span>
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
             </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Download className="w-4 h-4 mr-2" />
-                <span>Export As...</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                  {exportFormats.map((item) => (
-                    <DropdownMenuItem key={item.format} className="cursor-pointer" onSelect={() => onExportScene(item.format)}>
-                      <span>{item.name}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
+             <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <Download className="w-4 h-4 mr-2" />
+                    <span>Export</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem className="cursor-pointer" onSelect={onExportCYB}>
+                           Scene (.cyb)
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Model As...</DropdownMenuLabel>
+                        {exportFormats.map((item) => (
+                            <DropdownMenuItem key={item.format} className="cursor-pointer" onSelect={() => onExportScene(item.format)}>
+                            <span>{item.name}</span>
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
             </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>

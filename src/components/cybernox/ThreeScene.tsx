@@ -153,7 +153,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             const colors = new Float32Array(particleCount * 3);
 
             const material = new THREE.PointsMaterial({
-                size: 0.4,
+                size: 0.8,
                 map: sparkTexture,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false,
@@ -164,9 +164,9 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             for (let i = 0; i < particleCount; i++) {
                 lifespans[i] = Math.random() * 2 + 1; // 1 to 3 seconds
                 const i3 = i * 3;
-                positions[i3] = (Math.random() - 0.5) * 1.0;
-                positions[i3 + 1] = Math.random() * 0.5;
-                positions[i3 + 2] = (Math.random() - 0.5) * 1.0;
+                positions[i3] = (Math.random() - 0.5) * 2.0;
+                positions[i3 + 1] = Math.random() * 1.0;
+                positions[i3 + 2] = (Math.random() - 0.5) * 2.0;
                 velocities[i3] = (Math.random() - 0.5) * 0.1;
                 velocities[i3 + 1] = Math.random() * 1.5 + 0.5;
                 velocities[i3 + 2] = (Math.random() - 0.5) * 0.1;
@@ -187,9 +187,9 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                     
                     if (lifespans[i] <= 0) {
                         lifespans[i] = Math.random() * 2 + 1;
-                        pos[i3] = (Math.random() - 0.5) * 1.0;
-                        pos[i3 + 1] = Math.random() * 0.5;
-                        pos[i3 + 2] = (Math.random() - 0.5) * 1.0;
+                        pos[i3] = (Math.random() - 0.5) * 2.0;
+                        pos[i3 + 1] = Math.random() * 1.0;
+                        pos[i3 + 2] = (Math.random() - 0.5) * 2.0;
                     }
                     
                     pos[i3 + 1] += velocities[i3 + 1] * 0.016;
@@ -258,7 +258,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             const lifespans = new Float32Array(particleCount);
 
             const material = new THREE.PointsMaterial({
-                size: 2,
+                size: 0.8,
                 map: smokeTexture,
                 blending: THREE.NormalBlending,
                 depthWrite: false,
@@ -288,16 +288,20 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                 const pos = pointsSystem.geometry.attributes.position.array as Float32Array;
                 const col = pointsSystem.geometry.attributes.color.array as Float32Array;
                 for(let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
                     lifespans[i] -= 0.016;
                     if(lifespans[i] <= 0) {
                         lifespans[i] = Math.random() * 4 + 1;
-                        pos[i*3] = (Math.random() - 0.5) * 1.0;
-                        pos[i*3+1] = Math.random() * 1;
-                        pos[i*3+2] = (Math.random() - 0.5) * 1.0;
+                        pos[i3] = (Math.random() - 0.5) * 1.0;
+                        pos[i3+1] = Math.random() * 1;
+                        pos[i3+2] = (Math.random() - 0.5) * 1.0;
                     }
-                    pos[i*3+1] += 0.05; // Faster rise for steam
+                    pos[i3+1] += 0.05; // Faster rise for steam
                     const lifeRatio = lifespans[i] / 4;
-                    col[i*3+1] = lifeRatio;
+                    const greyValue = lifeRatio * 0.6;
+                    col[i3] = greyValue;
+                    col[i3+1] = greyValue;
+                    col[i3+2] = greyValue;
                 }
                 pointsSystem.rotation.y = elapsedTime * 0.1;
                 pointsSystem.geometry.attributes.position.needsUpdate = true;
