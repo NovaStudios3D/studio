@@ -1,8 +1,9 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -10,12 +11,12 @@ interface ObjectListPanelProps {
   objects: SceneObject[];
   selectedObjectId: string | null;
   onSelectObject: (id: string) => void;
-  onToggleVisibility: (id: string) => void;
+  onToggleVisibility: (id:string) => void;
   onTogglePanel: () => void;
 }
 
-const getIconForType = (type: SceneObject['type']) => {
-  switch (type) {
+const getIconForObject = (obj: SceneObject) => {
+  switch (obj.type) {
     case "Cube":
       return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Sphere":
@@ -33,7 +34,15 @@ const getIconForType = (type: SceneObject['type']) => {
     case "Video":
         return <Video className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "ParticleSystem":
-        return <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />;
+        switch(obj.particleType) {
+            case "Fire": return <Flame className="w-4 h-4 mr-2 text-muted-foreground" />;
+            case "Rain": return <CloudRain className="w-4 h-4 mr-2 text-muted-foreground" />;
+            case "Snow": return <Snowflake className="w-4 h-4 mr-2 text-muted-foreground" />;
+            case "Smoke": return <Wind className="w-4 h-4 mr-2 text-muted-foreground" />;
+            case "Magic": return <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />;
+            case "Ocean": return <Waves className="w-4 h-4 mr-2 text-muted-foreground" />;
+            default: return <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />;
+        }
     default:
       return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
   }
@@ -68,7 +77,7 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
                       aria-current={selectedObjectId === obj.id ? "page" : undefined}
                       disabled={obj.type === 'ParticleSystem'}
                     >
-                      {getIconForType(obj.type)}
+                      {getIconForObject(obj)}
                       <span className="truncate flex-1">{obj.name}</span>
                       {obj.type === '3DText' && obj.text && (
                          <span className="ml-2 text-xs text-muted-foreground truncate italic">"{obj.text}"</span>
@@ -100,3 +109,4 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
 };
 
 export default ObjectListPanel;
+
