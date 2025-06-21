@@ -22,6 +22,7 @@ interface ThreeSceneProps {
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
   activeTool: ActiveTool;
+  skyTime: number;
 }
 
 export interface ThreeSceneRef {
@@ -35,6 +36,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   selectedObjectId,
   setSelectedObjectId,
   activeTool,
+  skyTime,
 }, ref) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
@@ -75,7 +77,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         if (type === 'dot') {
             context.beginPath();
             context.arc(64, 64, 60, 0, Math.PI * 2);
-            context.fillStyle = '#ffffff';
+            context.fillStyle = '#4A90E2';
             context.fill();
         } else if (type === 'spark') {
             gradient.addColorStop(0, 'rgba(255,255,255,1)');
@@ -85,8 +87,8 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             context.fillStyle = gradient;
             context.fillRect(0, 0, 128, 128);
         } else if (type === 'smoke') {
-            gradient.addColorStop(0.3, 'rgba(255,255,255,0.6)');
-            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            gradient.addColorStop(0.3, 'rgba(128,128,128,0.6)');
+            gradient.addColorStop(1, 'rgba(128,128,128,0)');
             context.fillStyle = gradient;
             context.fillRect(0, 0, 128, 128);
         }
@@ -162,9 +164,9 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             for (let i = 0; i < particleCount; i++) {
                 lifespans[i] = Math.random() * 2 + 1; // 1 to 3 seconds
                 const i3 = i * 3;
-                positions[i3] = (Math.random() - 0.5) * 0.5;
+                positions[i3] = (Math.random() - 0.5) * 1.0;
                 positions[i3 + 1] = Math.random() * 0.5;
-                positions[i3 + 2] = (Math.random() - 0.5) * 0.5;
+                positions[i3 + 2] = (Math.random() - 0.5) * 1.0;
                 velocities[i3] = (Math.random() - 0.5) * 0.1;
                 velocities[i3 + 1] = Math.random() * 1.5 + 0.5;
                 velocities[i3 + 2] = (Math.random() - 0.5) * 0.1;
@@ -185,15 +187,15 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                     
                     if (lifespans[i] <= 0) {
                         lifespans[i] = Math.random() * 2 + 1;
-                        pos[i3] = (Math.random() - 0.5) * 0.5;
+                        pos[i3] = (Math.random() - 0.5) * 1.0;
                         pos[i3 + 1] = Math.random() * 0.5;
-                        pos[i3 + 2] = (Math.random() - 0.5) * 0.5;
+                        pos[i3 + 2] = (Math.random() - 0.5) * 1.0;
                     }
                     
                     pos[i3 + 1] += velocities[i3 + 1] * 0.016;
                     
                     const lifeRatio = lifespans[i] / (Math.random() * 2 + 1);
-                    color.setHSL(0.08, 1.0, lifeRatio * 0.6 + 0.1);
+                    color.setHSL(0.1, 1.0, lifeRatio * 0.6 + 0.1);
                     col[i3] = color.r;
                     col[i3 + 1] = color.g;
                     col[i3 + 2] = color.b;
@@ -215,7 +217,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                 blending: THREE.NormalBlending,
                 depthWrite: false,
                 transparent: true,
-                opacity: isSnow ? 0.9 : 0.7,
+                opacity: isSnow ? 1.0 : 0.7,
                 color: isSnow ? '#FFFFFF' : '#4A90E2'
             });
             
@@ -256,7 +258,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             const lifespans = new Float32Array(particleCount);
 
             const material = new THREE.PointsMaterial({
-                size: 5,
+                size: 2,
                 map: smokeTexture,
                 blending: THREE.NormalBlending,
                 depthWrite: false,
@@ -269,10 +271,10 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             for (let i = 0; i < particleCount; i++) {
                 const i3 = i * 3;
                 lifespans[i] = Math.random() * 4 + 1;
-                positions[i3] = (Math.random() - 0.5) * 2;
+                positions[i3] = (Math.random() - 0.5) * 1.0;
                 positions[i3 + 1] = Math.random() * 1;
-                positions[i3 + 2] = (Math.random() - 0.5) * 2;
-                color.setScalar(0.8); // Lighter color for steam
+                positions[i3 + 2] = (Math.random() - 0.5) * 1.0;
+                color.setScalar(0.6); // Grey color for steam
                 colors[i3] = color.r;
                 colors[i3 + 1] = color.g;
                 colors[i3 + 2] = color.b;
@@ -289,11 +291,11 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                     lifespans[i] -= 0.016;
                     if(lifespans[i] <= 0) {
                         lifespans[i] = Math.random() * 4 + 1;
-                        pos[i*3] = (Math.random() - 0.5) * 2;
+                        pos[i*3] = (Math.random() - 0.5) * 1.0;
                         pos[i*3+1] = Math.random() * 1;
-                        pos[i*3+2] = (Math.random() - 0.5) * 2;
+                        pos[i*3+2] = (Math.random() - 0.5) * 1.0;
                     }
-                    pos[i*3+1] += 0.03; // Faster rise for steam
+                    pos[i*3+1] += 0.05; // Faster rise for steam
                     const lifeRatio = lifespans[i] / 4;
                     col[i*3+1] = lifeRatio;
                 }
@@ -376,32 +378,35 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             }
             break;
         }
-        case 'Ocean': {
-            const oceanGeometry = new THREE.PlaneGeometry(100, 100, 50, 50);
-            const oceanMaterial = new THREE.MeshStandardMaterial({
+        case 'Water': {
+            const waterGeometry = new THREE.PlaneGeometry(100, 100, 50, 50);
+            const waterMaterial = new THREE.MeshStandardMaterial({
                 color: '#006994',
-                metalness: 0.2,
-                roughness: 0.3,
+                metalness: 0.4,
+                roughness: 0.2,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.85
             });
-            system = new THREE.Mesh(oceanGeometry, oceanMaterial);
+            system = new THREE.Mesh(waterGeometry, waterMaterial);
             system.rotation.x = -Math.PI / 2;
             system.receiveShadow = true;
 
             const originalPositions = (system as THREE.Mesh).geometry.attributes.position.clone();
 
             update = (elapsedTime) => {
-                const oceanMesh = system as THREE.Mesh;
-                const pos = oceanMesh.geometry.attributes.position.array as Float32Array;
+                const waterMesh = system as THREE.Mesh;
+                const pos = waterMesh.geometry.attributes.position.array as Float32Array;
                 const origPos = originalPositions.array as Float32Array;
                 for(let i=0; i < pos.length; i+=3) {
                     const x = origPos[i];
                     const y = origPos[i+1];
-                    pos[i+2] = (Math.sin(x * 0.1 + elapsedTime) + Math.sin(y * 0.1 + elapsedTime)) * 1.5;
+                    const z1 = Math.sin(x * 0.1 + elapsedTime * 0.5) * 0.4;
+                    const z2 = Math.cos(y * 0.05 + elapsedTime * 0.8) * 0.3;
+                    const z3 = Math.sin((x + y) * 0.02 + elapsedTime * 0.3) * 0.5;
+                    pos[i+2] = (z1 + z2 + z3);
                 }
-                oceanMesh.geometry.attributes.position.needsUpdate = true;
-                oceanMesh.geometry.computeVertexNormals();
+                waterMesh.geometry.attributes.position.needsUpdate = true;
+                waterMesh.geometry.computeVertexNormals();
             };
             break;
         }
@@ -504,6 +509,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
     sceneRef.current = new THREE.Scene();
     const editorBgColor = getComputedStyle(currentMount).getPropertyValue('background-color') || 'hsl(var(--background))';
     sceneRef.current.background = new THREE.Color(editorBgColor);
+    sceneRef.current.userData.skybox = false;
 
     clockRef.current = new THREE.Clock();
 
@@ -587,9 +593,11 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             cameraRef.current.aspect = clientWidth / clientHeight;
             cameraRef.current.updateProjectionMatrix();
         }
-        const newEditorBgColor = getComputedStyle(mountRef.current).getPropertyValue('background-color') || 'hsl(var(--background))';
-        if (sceneRef.current) {
-          sceneRef.current.background = new THREE.Color(newEditorBgColor);
+        if (!sceneRef.current?.userData.skybox) {
+          const newEditorBgColor = getComputedStyle(mountRef.current).getPropertyValue('background-color') || 'hsl(var(--background))';
+          if (sceneRef.current) {
+            sceneRef.current.background = new THREE.Color(newEditorBgColor);
+          }
         }
       }
     };
@@ -601,7 +609,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
     
     const themeObserver = new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class' && mountRef.current && sceneRef.current) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class' && mountRef.current && sceneRef.current && !sceneRef.current.userData.skybox) {
            const newEditorBgColor = getComputedStyle(mountRef.current).getPropertyValue('background-color') || 'hsl(var(--background))';
            sceneRef.current.background = new THREE.Color(newEditorBgColor);
         }
@@ -700,6 +708,75 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, updateSceneObjectFromTransform]);
 
+  useEffect(() => {
+    if (!sceneRef.current || !mountRef.current) return;
+    
+    const skyboxData = sceneObjects.find(obj => obj.type === 'Skybox');
+    const skyboxLoaded = sceneRef.current.userData.skybox;
+
+    if (skyboxData && !skyboxLoaded) {
+      new THREE.TextureLoader().load(
+        'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/equirectangular/2294472375_24a3b8ef46_o.jpg',
+        (texture) => {
+          texture.mapping = THREE.EquirectangularReflectionMapping;
+          if (sceneRef.current) {
+            sceneRef.current.background = texture;
+            sceneRef.current.environment = texture;
+            sceneRef.current.userData.skybox = true;
+          }
+        }
+      );
+    } else if (!skyboxData && skyboxLoaded) {
+      const editorBgColor = getComputedStyle(mountRef.current).getPropertyValue('background-color') || 'hsl(var(--background))';
+      sceneRef.current.background = new THREE.Color(editorBgColor);
+      sceneRef.current.environment = null;
+      sceneRef.current.userData.skybox = false;
+    }
+  }, [sceneObjects]);
+
+  useEffect(() => {
+    if (typeof skyTime !== 'number' || !directionalLightRef.current || !sceneRef.current) return;
+    
+    const ambientLight = sceneRef.current.children.find(c => c instanceof THREE.AmbientLight) as THREE.AmbientLight;
+    if (!ambientLight) return;
+
+    const sunCycle = [
+        { time: 0, color: new THREE.Color('#0d1a2f'), intensity: 0.1, ambient: 0.05 }, // Night
+        { time: 5, color: new THREE.Color('#0d1a2f'), intensity: 0.1, ambient: 0.05 }, // Pre-sunrise
+        { time: 6, color: new THREE.Color('#ff8c61'), intensity: 1.0, ambient: 0.4 }, // Sunrise
+        { time: 8, color: new THREE.Color('#ffead8'), intensity: 1.2, ambient: 0.8 }, // Morning
+        { time: 12, color: new THREE.Color('#ffffff'), intensity: 1.5, ambient: 1.0 }, // Noon
+        { time: 16, color: new THREE.Color('#ffead8'), intensity: 1.2, ambient: 0.8 }, // Afternoon
+        { time: 18, color: new THREE.Color('#ff8c61'), intensity: 1.0, ambient: 0.4 }, // Sunset
+        { time: 20, color: new THREE.Color('#0d1a2f'), intensity: 0.1, ambient: 0.05 }, // Post-sunset
+        { time: 24, color: new THREE.Color('#0d1a2f'), intensity: 0.1, ambient: 0.05 } // Night
+    ];
+
+    const lerp = (a: number, b: number, alpha: number) => a + alpha * (b - a);
+
+    const angle = (skyTime / 24 - 0.25) * Math.PI * 2;
+    directionalLightRef.current.position.set(0, Math.sin(angle) * 20, Math.cos(angle) * 20);
+
+    const currentFrameIndex = sunCycle.findIndex((frame, i) => {
+        const nextFrame = sunCycle[i+1];
+        return skyTime >= frame.time && (!nextFrame || skyTime < nextFrame.time);
+    });
+    
+    const currentFrame = sunCycle[currentFrameIndex];
+    const nextFrame = sunCycle[currentFrameIndex + 1] || currentFrame;
+
+    const progress = (nextFrame.time - currentFrame.time) === 0 ? 0 : (skyTime - currentFrame.time) / (nextFrame.time - currentFrame.time);
+
+    const newColor = currentFrame.color.clone().lerp(nextFrame.color, progress);
+    const newIntensity = lerp(currentFrame.intensity, nextFrame.intensity, progress);
+    const newAmbient = lerp(currentFrame.ambient, nextFrame.ambient, progress);
+    
+    directionalLightRef.current.color.copy(newColor);
+    directionalLightRef.current.intensity = newIntensity;
+    ambientLight.intensity = newAmbient;
+
+  }, [skyTime]);
+
 
   useEffect(() => {
     if (!isClient || !sceneRef.current) return;
@@ -781,6 +858,10 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
               }
           }
           return;
+      }
+      
+      if (objData.type === 'Skybox') {
+        return;
       }
 
       let existingThreeObject = threeObjectsRef.current.get(objData.id);

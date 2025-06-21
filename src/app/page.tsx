@@ -26,7 +26,7 @@ import {
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model' | 'Audio';
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model' | 'Audio' | 'Skybox';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
@@ -121,6 +121,7 @@ export default function Cybernox3DPage() {
   const [isObjectListVisible, setIsObjectListVisible] = useState(true);
   const [isAudioPreviewOpen, setIsAudioPreviewOpen] = useState(false);
   const [previewAudioData, setPreviewAudioData] = useState<{ src: string | ArrayBuffer; name: string; } | null>(null);
+  const [skyTime, setSkyTime] = useState<number>(12);
 
 
   const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string | ArrayBuffer, name?: string, format?: string } = {}) => {
@@ -139,6 +140,13 @@ export default function Cybernox3DPage() {
          newObjectName = `${baseName} ${counter++}`;
        }
     }
+    
+    if (type === 'Skybox') {
+      if (sceneObjects.some(obj => obj.type === 'Skybox')) {
+        return; // Only one skybox allowed
+      }
+      newObjectName = 'Skybox';
+    }
 
 
     let textContent: string | undefined = undefined;
@@ -153,7 +161,7 @@ export default function Cybernox3DPage() {
       objectColor = '#FFFFFF';
     }
     
-    if (type === 'Image' || type === 'Video' || type === 'Model' || type === 'Audio') {
+    if (type === 'Image' || type === 'Video' || type === 'Model' || type === 'Audio' || type === 'Skybox') {
       objectColor = '#FFFFFF'
     }
 
@@ -168,7 +176,7 @@ export default function Cybernox3DPage() {
       id: newObjectId,
       name: newObjectName,
       type: type,
-      position: type === 'Model' ? [0, 0, 0] : [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
+      position: (type === 'Model' || type === 'Skybox') ? [0, 0, 0] : [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
       rotation: [0, 0, 0],
       scale: newObjectScale,
       color: objectColor,
@@ -186,14 +194,9 @@ export default function Cybernox3DPage() {
     if (!selectedObjectId) {
       return;
     }
-    const objectToDelete = sceneObjects.find(obj => obj.id === selectedObjectId);
     setSceneObjects(prevObjects => prevObjects.filter(obj => obj.id !== selectedObjectId));
-
-    if (objectToDelete) {
-        // toast({ title: "Object Deleted", description: `${objectToDelete.name} deleted.`, variant: "destructive" });
-    }
     setSelectedObjectId(null);
-  }, [selectedObjectId, sceneObjects]);
+  }, [selectedObjectId]);
 
   const copySelectedObject = useCallback(() => {
     if (!selectedObjectId) {
@@ -393,6 +396,7 @@ export default function Cybernox3DPage() {
             selectedObjectId={selectedObjectId}
             setSelectedObjectId={setSelectedObjectId}
             activeTool={activeTool}
+            skyTime={skyTime}
           />
           {!isObjectListVisible && (
             <div className="absolute top-4 right-4 z-10">
@@ -419,6 +423,8 @@ export default function Cybernox3DPage() {
                   onSelectObject={handleObjectListClick}
                   onToggleVisibility={toggleObjectVisibility}
                   onTogglePanel={() => setIsObjectListVisible(false)}
+                  skyTime={skyTime}
+                  setSkyTime={setSkyTime}
                 />
               </div>
             </aside>

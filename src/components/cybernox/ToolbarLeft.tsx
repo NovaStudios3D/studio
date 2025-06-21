@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Hand, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, AudioWaveform } from "lucide-react";
+import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, AudioWaveform, Sun } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -47,7 +47,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onExportScene,
 }) => {
   const mainTools = [
-    { name: "Move" as ActiveTool, icon: <Hand className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
+    { name: "Move" as ActiveTool, icon: <Move3d className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
     { name: "Rotate" as ActiveTool, icon: <RotateCw className="w-5 h-5" />, ariaLabel: "Rotate Tool (R)" },
     { name: "Scale" as ActiveTool, icon: <Maximize2 className="w-5 h-5" />, ariaLabel: "Scale Tool (S)" },
   ];
@@ -72,7 +72,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
     { name: "Snow", icon: <Snowflake className="w-4 h-4 mr-2" /> },
     { name: "Steam", icon: <Wind className="w-4 h-4 mr-2" /> },
     { name: "Magic", icon: <Sparkles className="w-4 h-4 mr-2" /> },
-    { name: "Ocean", icon: <Waves className="w-4 h-4 mr-2" /> },
+    { name: "Water", icon: <Waves className="w-4 h-4 mr-2" /> },
     { name: "Fog", icon: <Cloud className="w-4 h-4 mr-2" /> },
   ];
   
@@ -109,6 +109,11 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
           </Tooltip>
           <DropdownMenuContent side="right" className="w-56">
             <DropdownMenuLabel>Add to Scene</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+             <DropdownMenuItem className="cursor-pointer" onSelect={() => onAddShape('Skybox')}>
+              <Sun className="w-4 h-4 mr-2" />
+              <span>Skybox</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
