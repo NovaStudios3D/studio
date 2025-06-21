@@ -407,36 +407,45 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   
   useImperativeHandle(ref, () => ({
     exportScene(format: string) {
-        const exporter = format === 'gltf' ? new GLTFExporter() : new OBJExporter();
-        const objectsToExport: THREE.Object3D[] = [];
+        const exportGroup = new THREE.Group();
         
         threeObjectsRef.current.forEach((obj, id) => {
             const sceneObjectData = sceneObjects.find(s => s.id === id);
-            if (sceneObjectData && sceneObjectData.visible !== false) {
-                 objectsToExport.push(obj);
+            if (sceneObjectData && (sceneObjectData.visible ?? true)) {
+                 exportGroup.add(obj.clone(true));
             }
         });
 
-        const options = {
-            onlyVisible: true,
-            binary: format === 'gltf', // for .glb
-        };
-
-        exporter.parse(
-            objectsToExport,
-            (result) => {
-                const output = format === 'gltf' ? result : JSON.stringify(result, null, 2);
-                const blob = new Blob([output], { type: format === 'gltf' ? 'model/gltf-binary' : 'text/plain' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `scene.${format === 'gltf' ? 'glb' : 'obj'}`;
-                link.click();
-            },
-            (error) => {
-                console.error('An error happened during parsing', error);
-            },
-            options
-        );
+        if (format === 'gltf') {
+            const exporter = new GLTFExporter();
+            const options = {
+                binary: true,
+            };
+            exporter.parse(
+                exportGroup,
+                (result) => {
+                    if (result instanceof ArrayBuffer) {
+                        const blob = new Blob([result], { type: 'model/gltf-binary' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `scene.glb`;
+                        link.click();
+                    }
+                },
+                (error) => {
+                    console.error('An error happened during GLTF export', error);
+                },
+                options
+            );
+        } else if (format === 'obj') {
+            const exporter = new OBJExporter();
+            const result = exporter.parse(exportGroup);
+            const blob = new Blob([result], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `scene.obj`;
+            link.click();
+        }
     }
   }));
 
