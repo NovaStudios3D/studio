@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -15,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Move, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves } from "lucide-react";
+import { Move, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -27,6 +28,8 @@ interface ToolbarLeftProps {
   onAddParticle: (particleType: string) => void;
   onImportImage: () => void;
   onImportVideo: () => void;
+  onImportModel: (format: string) => void;
+  onExportScene: (format: string) => void;
 }
 
 const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
@@ -38,6 +41,8 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onAddParticle,
   onImportImage,
   onImportVideo,
+  onImportModel,
+  onExportScene,
 }) => {
   const mainTools = [
     { name: "Move" as ActiveTool, icon: <Move className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
@@ -63,9 +68,21 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
     { name: "Fire", icon: <Flame className="w-4 h-4 mr-2" /> },
     { name: "Rain", icon: <CloudRain className="w-4 h-4 mr-2" /> },
     { name: "Snow", icon: <Snowflake className="w-4 h-4 mr-2" /> },
-    { name: "Smoke", icon: <Wind className="w-4 h-4 mr-2" /> },
+    { name: "Steam", icon: <Wind className="w-4 h-4 mr-2" /> },
     { name: "Magic", icon: <Sparkles className="w-4 h-4 mr-2" /> },
     { name: "Ocean", icon: <Waves className="w-4 h-4 mr-2" /> },
+    { name: "Fog", icon: <Cloud className="w-4 h-4 mr-2" /> },
+  ];
+  
+  const importFormats: { name: string; format: string }[] = [
+    { name: 'GLTF (.gltf/.glb)', format: 'gltf' },
+    { name: 'OBJ (.obj)', format: 'obj' },
+    { name: 'STL (.stl)', format: 'stl' },
+  ];
+  
+  const exportFormats: { name: string; format: string }[] = [
+    { name: 'GLTF (.glb)', format: 'gltf' },
+    { name: 'OBJ (.obj)', format: 'obj' },
   ];
 
   return (
@@ -132,6 +149,37 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
               <Video className="w-4 h-4 mr-2" />
               <span>Import Video</span>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Upload className="w-4 h-4 mr-2" />
+                <span>Import Model</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  {importFormats.map((item) => (
+                    <DropdownMenuItem key={item.format} className="cursor-pointer" onSelect={() => onImportModel(item.format)}>
+                      <span>{item.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Download className="w-4 h-4 mr-2" />
+                <span>Export Scene</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  {exportFormats.map((item) => (
+                    <DropdownMenuItem key={item.format} className="cursor-pointer" onSelect={() => onExportScene(item.format)}>
+                      <span>{item.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>
 

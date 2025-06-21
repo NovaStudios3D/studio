@@ -1,12 +1,17 @@
 
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js';
 import type { SceneObject, ActiveTool } from '@/app/page';
 
 const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json';
@@ -19,13 +24,17 @@ interface ThreeSceneProps {
   activeTool: ActiveTool;
 }
 
-const ThreeScene: React.FC<ThreeSceneProps> = ({
+export interface ThreeSceneRef {
+  exportScene: (format: string) => void;
+}
+
+const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   sceneObjects,
   setSceneObjects,
   selectedObjectId,
   setSelectedObjectId,
   activeTool,
-}) => {
+}, ref) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
   const [font, setFont] = useState<THREE.Font | null>(null);
@@ -42,7 +51,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
   const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const threeObjectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
-  const particleSystemsRef = useRef<Map<string, { system: THREE.Points, update: (elapsedTime: number) => void }>>(new Map());
+  const particleSystemsRef = useRef<Map<string, { system: THREE.Object3D, update: (elapsedTime: number) => void }>>(new Map());
 
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const pointerRef = useRef<THREE.Vector2 | null>(null);
@@ -70,7 +79,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             context.fillStyle = gradient;
             context.fillRect(0, 0, 128, 128);
         } else if (type === 'smoke') {
-            gradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+            gradient.addColorStop(0.3, 'rgba(255,255,255,0.6)');
             gradient.addColorStop(1, 'rgba(255,255,255,0)');
             context.fillStyle = gradient;
             context.fillRect(0, 0, 128, 128);
@@ -91,7 +100,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   }, []);
 
   const createParticleSystem = useCallback((objData: SceneObject) => {
-    let system: THREE.Points;
+    let system: THREE.Object3D;
     let update: (elapsedTime: number) => void = () => {};
 
     const geometry = new THREE.BufferGeometry();
@@ -130,8 +139,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             system = new THREE.Points(geometry, material);
             
             update = (elapsedTime) => {
-                const pos = system.geometry.attributes.position.array as Float32Array;
-                const col = system.geometry.attributes.color.array as Float32Array;
+                const pointsSystem = system as THREE.Points;
+                const pos = pointsSystem.geometry.attributes.position.array as Float32Array;
+                const col = pointsSystem.geometry.attributes.color.array as Float32Array;
                 
                 for (let i = 0; i < particleCount; i++) {
                     const i3 = i * 3;
@@ -147,14 +157,14 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                     pos[i3 + 1] += velocities[i3 + 1] * 0.016;
                     
                     const lifeRatio = lifespans[i] / (Math.random() * 2 + 1);
-                    color.setHSL(0.1, 1.0, lifeRatio * 0.7);
+                    color.setHSL(0.08, 1.0, lifeRatio * 0.6 + 0.1);
                     col[i3] = color.r;
                     col[i3 + 1] = color.g;
                     col[i3 + 2] = color.b;
                 }
-                system.geometry.attributes.position.needsUpdate = true;
-                system.geometry.attributes.color.needsUpdate = true;
-                (system.material as THREE.PointsMaterial).opacity = Math.random() * 0.5 + 0.5;
+                pointsSystem.geometry.attributes.position.needsUpdate = true;
+                pointsSystem.geometry.attributes.color.needsUpdate = true;
+                (pointsSystem.material as THREE.PointsMaterial).opacity = Math.random() * 0.5 + 0.5;
             };
             break;
         }
@@ -169,7 +179,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                 blending: THREE.NormalBlending,
                 depthWrite: false,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.7,
+                color: isSnow ? '#FFFFFF' : '#87CEEB'
             });
             
             for (let i = 0; i < particleCount; i++) {
@@ -187,7 +198,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             system = new THREE.Points(geometry, material);
 
             update = () => {
-                const pos = system.geometry.attributes.position.array as Float32Array;
+                const pointsSystem = system as THREE.Points;
+                const pos = pointsSystem.geometry.attributes.position.array as Float32Array;
                 for (let i = 0; i < particleCount; i++) {
                     const i3 = i * 3;
                     pos[i3] += velocities[i3];
@@ -198,11 +210,11 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                        pos[i3+1] = 15;
                     }
                 }
-                system.geometry.attributes.position.needsUpdate = true;
+                pointsSystem.geometry.attributes.position.needsUpdate = true;
             };
             break;
         }
-        case 'Smoke': {
+        case 'Steam': {
             const particleCount = 300;
             const positions = new Float32Array(particleCount * 3);
             const lifespans = new Float32Array(particleCount);
@@ -213,17 +225,18 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                 blending: THREE.NormalBlending,
                 depthWrite: false,
                 transparent: true,
-                vertexColors: true
+                vertexColors: true,
+                opacity: 0.5
             });
             const colors = new Float32Array(particleCount * 3);
 
             for (let i = 0; i < particleCount; i++) {
                 const i3 = i * 3;
-                lifespans[i] = Math.random() * 5 + 2;
+                lifespans[i] = Math.random() * 4 + 1;
                 positions[i3] = (Math.random() - 0.5) * 2;
                 positions[i3 + 1] = Math.random() * 1;
                 positions[i3 + 2] = (Math.random() - 0.5) * 2;
-                color.setScalar(0.6);
+                color.setScalar(0.8); // Lighter color for steam
                 colors[i3] = color.r;
                 colors[i3 + 1] = color.g;
                 colors[i3 + 2] = color.b;
@@ -233,94 +246,126 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             system = new THREE.Points(geometry, material);
 
             update = (elapsedTime) => {
-                const pos = system.geometry.attributes.position.array as Float32Array;
-                const col = system.geometry.attributes.color.array as Float32Array;
+                const pointsSystem = system as THREE.Points;
+                const pos = pointsSystem.geometry.attributes.position.array as Float32Array;
+                const col = pointsSystem.geometry.attributes.color.array as Float32Array;
                 for(let i = 0; i < particleCount; i++) {
                     lifespans[i] -= 0.016;
                     if(lifespans[i] <= 0) {
-                        lifespans[i] = Math.random() * 5 + 2;
+                        lifespans[i] = Math.random() * 4 + 1;
                         pos[i*3] = (Math.random() - 0.5) * 2;
                         pos[i*3+1] = Math.random() * 1;
                         pos[i*3+2] = (Math.random() - 0.5) * 2;
                     }
-                    pos[i*3+1] += 0.005;
-                    const lifeRatio = lifespans[i] / (Math.random() * 5 + 2);
+                    pos[i*3+1] += 0.03; // Faster rise for steam
+                    const lifeRatio = lifespans[i] / 4;
                     col[i*3+1] = lifeRatio;
                 }
-                system.rotation.y = elapsedTime * 0.1;
-                system.geometry.attributes.position.needsUpdate = true;
-                system.geometry.attributes.color.needsUpdate = true;
+                pointsSystem.rotation.y = elapsedTime * 0.1;
+                pointsSystem.geometry.attributes.position.needsUpdate = true;
+                pointsSystem.geometry.attributes.color.needsUpdate = true;
             };
+            break;
+        }
+        case 'Fog': {
+            const particleCount = 200;
+            const positions = new Float32Array(particleCount * 3);
+            const material = new THREE.PointsMaterial({
+                size: 20,
+                map: smokeTexture,
+                blending: THREE.NormalBlending,
+                depthWrite: false,
+                transparent: true,
+                color: 0xaaaaaa,
+                opacity: 0.15
+            });
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i*3] = (Math.random() - 0.5) * 40;
+                positions[i*3+1] = (Math.random() - 0.5) * 10;
+                positions[i*3+2] = (Math.random() - 0.5) * 40;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            system = new THREE.Points(geometry, material);
+            
+            update = (elapsedTime) => {
+                system.rotation.y = elapsedTime * 0.02;
+            }
             break;
         }
         case 'Magic': {
             const particleCount = 1000;
             const positions = new Float32Array(particleCount * 3);
-            const colors = new Float32Array(particleCount * 3);
+            const velocities = new Float32Array(particleCount * 3);
+
             const material = new THREE.PointsMaterial({
                 size: 0.3,
                 map: sparkTexture,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false,
                 transparent: true,
-                vertexColors: true
+                color: '#FFFFFF'
             });
+
             for(let i=0; i<particleCount; i++) {
                 const i3 = i * 3;
-                positions[i3] = (Math.random() - 0.5) * 8;
-                positions[i3+1] = (Math.random() - 0.5) * 4;
-                positions[i3+2] = (Math.random() - 0.5) * 8;
-                color.setHSL(Math.random(), 0.8, 0.7);
-                colors[i3] = color.r;
-                colors[i3+1] = color.g;
-                colors[i3+2] = color.b;
+                positions[i3] = 0;
+                positions[i3+1] = 0;
+                positions[i3+2] = 0;
+                
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                velocities[i3] = Math.sin(phi) * Math.cos(theta) * (Math.random() * 2 + 1);
+                velocities[i3+1] = Math.sin(phi) * Math.sin(theta) * (Math.random() * 2 + 1);
+                velocities[i3+2] = Math.cos(phi) * (Math.random() * 2 + 1);
             }
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             system = new THREE.Points(geometry, material);
             
             update = (elapsedTime) => {
-                const pos = system.geometry.attributes.position.array as Float32Array;
+                const pointsSystem = system as THREE.Points;
+                const pos = pointsSystem.geometry.attributes.position.array as Float32Array;
                 for(let i=0; i<particleCount; i++) {
                     const i3 = i*3;
-                    const x = pos[i3];
-                    const z = pos[i3+2];
-                    pos[i3] = x * Math.cos(0.001) + z * Math.sin(0.001);
-                    pos[i3+2] = z * Math.cos(0.001) - x * Math.sin(0.001);
+                    pos[i3] += velocities[i3] * 0.01;
+                    pos[i3+1] += velocities[i3+1] * 0.01;
+                    pos[i3+2] += velocities[i3+2] * 0.01;
+
+                    if (pos[i3]**2 + pos[i3+1]**2 + pos[i3+2]**2 > 100) {
+                        pos[i3] = pos[i3+1] = pos[i3+2] = 0;
+                    }
                 }
-                system.geometry.attributes.position.needsUpdate = true;
+                pointsSystem.geometry.attributes.position.needsUpdate = true;
             }
             break;
         }
         case 'Ocean': {
-            const particleCount = 10000;
-            const positions = new Float32Array(particleCount * 3);
-            const material = new THREE.PointsMaterial({
-                size: 0.15,
-                color: '#3498db',
-                blending: THREE.NormalBlending,
+            const oceanGeometry = new THREE.PlaneGeometry(100, 100, 50, 50);
+            const oceanMaterial = new THREE.MeshStandardMaterial({
+                color: '#006994',
+                metalness: 0.2,
+                roughness: 0.3,
                 transparent: true,
                 opacity: 0.8
             });
-            const size = 20;
-            for(let i=0; i<particleCount; i++) {
-                const i3 = i*3;
-                positions[i3] = (Math.random() - 0.5) * size;
-                positions[i3+1] = 0;
-                positions[i3+2] = (Math.random() - 0.5) * size;
-            }
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            system = new THREE.Points(geometry, material);
+            system = new THREE.Mesh(oceanGeometry, oceanMaterial);
+            system.rotation.x = -Math.PI / 2;
+            system.receiveShadow = true;
+
+            const originalPositions = (system as THREE.Mesh).geometry.attributes.position.clone();
 
             update = (elapsedTime) => {
-                const pos = system.geometry.attributes.position.array as Float32Array;
-                for(let i=0; i<particleCount; i++) {
-                    const i3 = i*3;
-                    const x = pos[i3];
-                    const z = pos[i3+2];
-                    pos[i3+1] = (Math.sin(x * 0.5 + elapsedTime) + Math.sin(z * 0.3 + elapsedTime)) * 0.5;
+                const oceanMesh = system as THREE.Mesh;
+                const pos = oceanMesh.geometry.attributes.position.array as Float32Array;
+                const origPos = originalPositions.array as Float32Array;
+                for(let i=0; i < pos.length; i+=3) {
+                    const x = origPos[i];
+                    const y = origPos[i+1];
+                    pos[i+2] = (Math.sin(x * 0.1 + elapsedTime) + Math.sin(y * 0.1 + elapsedTime)) * 1.5;
                 }
-                system.geometry.attributes.position.needsUpdate = true;
+                oceanMesh.geometry.attributes.position.needsUpdate = true;
+                oceanMesh.geometry.computeVertexNormals();
             };
             break;
         }
@@ -359,6 +404,41 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       })
     );
   }, [setSceneObjects]);
+  
+  useImperativeHandle(ref, () => ({
+    exportScene(format: string) {
+        const exporter = format === 'gltf' ? new GLTFExporter() : new OBJExporter();
+        const objectsToExport: THREE.Object3D[] = [];
+        
+        threeObjectsRef.current.forEach((obj, id) => {
+            const sceneObjectData = sceneObjects.find(s => s.id === id);
+            if (sceneObjectData && sceneObjectData.visible !== false) {
+                 objectsToExport.push(obj);
+            }
+        });
+
+        const options = {
+            onlyVisible: true,
+            binary: format === 'gltf', // for .glb
+        };
+
+        exporter.parse(
+            objectsToExport,
+            (result) => {
+                const output = format === 'gltf' ? result : JSON.stringify(result, null, 2);
+                const blob = new Blob([output], { type: format === 'gltf' ? 'model/gltf-binary' : 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `scene.${format === 'gltf' ? 'glb' : 'obj'}`;
+                link.click();
+            },
+            (error) => {
+                console.error('An error happened during parsing', error);
+            },
+            options
+        );
+    }
+  }));
 
   useEffect(() => {
     if (!isClient || !mountRef.current) return;
@@ -374,7 +454,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     cameraRef.current.position.set(5, 5, 15);
     cameraRef.current.lookAt(0,0,0);
 
-    rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
+    rendererRef.current = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     rendererRef.current.setSize(currentMount.clientWidth, currentMount.clientHeight);
     rendererRef.current.setPixelRatio(window.devicePixelRatio);
     rendererRef.current.shadowMap.enabled = true;
@@ -518,9 +598,13 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       threeObjectsRef.current.clear();
       particleSystemsRef.current.forEach((particleSystem) => {
           sceneRef.current?.remove(particleSystem.system);
-          particleSystem.system.geometry.dispose();
-          if (particleSystem.system.material) {
-            (particleSystem.system.material as THREE.Material).dispose();
+          if (particleSystem.system instanceof THREE.Mesh || particleSystem.system instanceof THREE.Points) {
+            particleSystem.system.geometry.dispose();
+            if (Array.isArray(particleSystem.system.material)) {
+                particleSystem.system.material.forEach(m => m.dispose());
+            } else if (particleSystem.system.material) {
+              (particleSystem.system.material as THREE.Material).dispose();
+            }
           }
       });
       particleSystemsRef.current.clear();
@@ -545,10 +629,19 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
             if (transformControlsRef.current?.object === obj) {
                 transformControlsRef.current.detach();
             }
+            // Dispose geometry and material
             if (obj instanceof THREE.Mesh) {
                 obj.geometry.dispose();
-                if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-                else if (obj.material) obj.material.dispose();
+                const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+                materials.forEach(m => m?.dispose());
+            } else if (obj instanceof THREE.Group) {
+                obj.traverse(child => {
+                    if (child instanceof THREE.Mesh) {
+                        child.geometry.dispose();
+                         const materials = Array.isArray(child.material) ? child.material : [child.material];
+                         materials.forEach(m => m?.dispose());
+                    }
+                });
             }
             if (videoElementsRef.current.has(id)) {
               videoElementsRef.current.get(id)?.remove();
@@ -561,8 +654,15 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     particleSystemsRef.current.forEach((particleSystem, id) => {
         if (!currentObjectIds.has(id)) {
             sceneRef.current?.remove(particleSystem.system);
-            particleSystem.system.geometry.dispose();
-            (particleSystem.system.material as THREE.Material).dispose();
+            if (particleSystem.system instanceof THREE.Mesh || particleSystem.system instanceof THREE.Points) {
+              particleSystem.system.geometry.dispose();
+              const material = particleSystem.system.material as THREE.Material | THREE.Material[];
+              if (Array.isArray(material)) {
+                  material.forEach(m => m.dispose());
+              } else {
+                  material.dispose();
+              }
+            }
             particleSystemsRef.current.delete(id);
         }
     });
@@ -640,6 +740,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
       if (!existingThreeObject) {
         let geometry: THREE.BufferGeometry | undefined;
+        let newObject: THREE.Object3D | undefined;
 
         switch (objData.type) {
             case 'Sphere': geometry = new THREE.SphereGeometry(0.5, 32, 16); break;
@@ -670,10 +771,41 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                 geometry = textGeo;
               }
               break;
+            case 'Model':
+              if (objData.src && objData.format) {
+                  let loader;
+                  if (objData.format === 'gltf' || objData.format === 'glb') loader = new GLTFLoader();
+                  else if (objData.format === 'obj') loader = new OBJLoader();
+                  else if (objData.format === 'stl') loader = new STLLoader();
+
+                  if (loader) {
+                    try {
+                        const parsed = loader.parse(objData.src as any);
+                        const model = (parsed.scene || parsed) as THREE.Object3D;
+                        
+                        model.traverse(child => {
+                            if (child instanceof THREE.Mesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+                        
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        model.position.sub(center);
+                        
+                        newObject = model;
+
+                    } catch (error) {
+                        console.error("Failed to load model:", error);
+                    }
+                  }
+              }
+              break;
         }
         
         if(objData.type === 'Image' && objData.src) {
-            const texture = new THREE.TextureLoader().load(objData.src, (tex) => {
+            const texture = new THREE.TextureLoader().load(objData.src as string, (tex) => {
                 const aspect = tex.image.width / tex.image.height;
                 setSceneObjects(prevObjects =>
                     prevObjects.map(o => {
@@ -690,7 +822,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         
         if(objData.type === 'Video' && objData.src) {
             const videoEl = document.createElement('video');
-            videoEl.src = objData.src;
+            videoEl.src = objData.src as string;
             videoEl.crossOrigin = 'anonymous';
             videoEl.loop = true;
             videoEl.muted = true;
@@ -715,22 +847,24 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
 
 
-        if (geometry) {
+        if (geometry && !newObject) {
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = objData.type !== 'Plane';
             mesh.receiveShadow = true;
-            mesh.visible = objData.visible ?? true;
-            mesh.userData = { id: objData.id, type: objData.type };
             if (objData.type === '3DText') {
                 mesh.userData.text = objData.text;
             }
+            newObject = mesh;
+        }
 
-            mesh.position.set(...objData.position);
-            mesh.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
-            mesh.scale.set(...objData.scale);
-
-            threeObjectsRef.current.set(objData.id, mesh);
-            sceneRef.current?.add(mesh);
+        if (newObject) {
+             newObject.visible = objData.visible ?? true;
+             newObject.userData = { id: objData.id, type: objData.type };
+             newObject.position.set(...objData.position);
+             newObject.rotation.set(objData.rotation[0],objData.rotation[1],objData.rotation[2]);
+             newObject.scale.set(...objData.scale);
+             threeObjectsRef.current.set(objData.id, newObject);
+             sceneRef.current?.add(newObject);
         }
       }
     });
@@ -770,6 +904,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   }
 
   return <div ref={mountRef} className="w-full h-full" aria-label="3D Modeling Viewport" />;
-};
+});
+
+ThreeScene.displayName = 'ThreeScene';
 
 export default ThreeScene;

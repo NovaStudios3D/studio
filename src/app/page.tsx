@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -13,18 +14,20 @@ import ObjectListPanel from "@/components/cybernox/ObjectListPanel";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import { PanelRightOpen } from 'lucide-react';
+import type { ThreeSceneRef } from '@/components/cybernox/ThreeScene';
 
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem';
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
   color: string;
   text?: string; 
   visible?: boolean;
-  src?: string;
+  src?: string | ArrayBuffer;
+  format?: string;
   particleType?: string;
 }
 
@@ -32,6 +35,7 @@ export type ActiveTool = 'Move' | 'Rotate' | 'Scale' | null;
 
 export default function Cybernox3DPage() {
   const { toast } = useToast();
+  const threeSceneRef = useRef<ThreeSceneRef>(null);
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([
     {
       id: "initial-cube-1",
@@ -75,19 +79,21 @@ export default function Cybernox3DPage() {
   const [isObjectListVisible, setIsObjectListVisible] = useState(true);
 
 
-  const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string, name?: string } = {}) => {
+  const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string | ArrayBuffer, name?: string, format?: string } = {}) => {
     const newObjectId = `object-${Date.now()}`;
     
     let baseName: string = options.name || type;
     if (type === '3DText' && !options.name) baseName = '3D Text';
+    if (type === 'Model' && options.name) {
+      baseName = options.name.split('.')[0];
+    }
     
     let counter = 1;
     let newObjectName = baseName;
-    if (!options.name) {
-       while (sceneObjects.some(obj => obj.name === `${baseName} ${counter}`)) {
-         counter++;
+    if (!options.name || type !== 'Model') {
+       while (sceneObjects.some(obj => obj.name === newObjectName)) {
+         newObjectName = `${baseName} ${counter++}`;
        }
-       newObjectName = `${baseName} ${counter}`;
     }
 
 
@@ -104,7 +110,7 @@ export default function Cybernox3DPage() {
       objectColor = '#FFFFFF';
     }
     
-    if (type === 'Image' || type === 'Video') {
+    if (type === 'Image' || type === 'Video' || type === 'Model') {
       objectColor = '#FFFFFF'
     }
 
@@ -119,12 +125,13 @@ export default function Cybernox3DPage() {
       id: newObjectId,
       name: newObjectName,
       type: type,
-      position: [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
+      position: type === 'Model' ? [0, 0, 0] : [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
       rotation: [0, 0, 0],
       scale: newObjectScale,
       color: objectColor,
       text: textContent,
       src: options.src,
+      format: options.format,
       visible: true,
     };
 
@@ -252,6 +259,38 @@ export default function Cybernox3DPage() {
     };
     input.click();
   }, [addSceneObject, sceneObjects]);
+  
+  const handleImportModel = useCallback((format: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = `.${format},` + (format === 'gltf' ? '.glb' : '');
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (readEvent) => {
+        const content = readEvent.target?.result;
+        if (content) {
+            addSceneObject('Model', { src: content, name: file.name, format });
+        }
+      };
+      
+      if (format === 'gltf' || format === 'glb') {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  }, [addSceneObject, sceneObjects]);
+  
+  const handleExportScene = useCallback((format: string) => {
+    if (threeSceneRef.current) {
+        threeSceneRef.current.exportScene(format);
+        toast({ title: "Exporting Scene", description: `Your scene is being exported as a .${format} file.` });
+    }
+  }, []);
 
 
   return (
@@ -266,9 +305,12 @@ export default function Cybernox3DPage() {
           onAddParticle={handleAddParticle}
           onImportImage={() => handleImportMedia('image/*')}
           onImportVideo={() => handleImportMedia('video/*')}
+          onImportModel={handleImportModel}
+          onExportScene={handleExportScene}
         />
         <main className="flex-1 relative overflow-hidden">
           <ThreeScene
+            ref={threeSceneRef}
             sceneObjects={sceneObjects}
             setSceneObjects={setSceneObjects}
             selectedObjectId={selectedObjectId}

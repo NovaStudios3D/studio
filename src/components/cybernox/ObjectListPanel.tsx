@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves, Cloud, Shapes } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -33,14 +33,17 @@ const getIconForObject = (obj: SceneObject) => {
         return <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Video":
         return <Video className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Model":
+        return <Shapes className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "ParticleSystem":
         switch(obj.particleType) {
             case "Fire": return <Flame className="w-4 h-4 mr-2 text-muted-foreground" />;
             case "Rain": return <CloudRain className="w-4 h-4 mr-2 text-muted-foreground" />;
             case "Snow": return <Snowflake className="w-4 h-4 mr-2 text-muted-foreground" />;
-            case "Smoke": return <Wind className="w-4 h-4 mr-2 text-muted-foreground" />;
+            case "Steam": return <Wind className="w-4 h-4 mr-2 text-muted-foreground" />;
             case "Magic": return <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />;
             case "Ocean": return <Waves className="w-4 h-4 mr-2 text-muted-foreground" />;
+            case "Fog": return <Cloud className="w-4 h-4 mr-2 text-muted-foreground" />;
             default: return <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />;
         }
     default:
@@ -109,4 +112,3 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
 };
 
 export default ObjectListPanel;
-
