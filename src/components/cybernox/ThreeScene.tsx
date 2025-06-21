@@ -50,6 +50,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   const clockRef = useRef<THREE.Clock | null>(null);
 
   const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const threeObjectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
   const particleSystemsRef = useRef<Map<string, { system: THREE.Object3D, update: (elapsedTime: number) => void }>>(new Map());
 
@@ -567,13 +568,14 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
     animate();
 
     const handleResize = () => {
-      if (rendererRef.current && cameraRef.current && currentMount) {
-        const width = currentMount.clientWidth;
-        const height = currentMount.clientHeight;
-        rendererRef.current.setSize(width, height);
-        cameraRef.current.aspect = width / height;
-        cameraRef.current.updateProjectionMatrix();
-        const newEditorBgColor = getComputedStyle(currentMount).getPropertyValue('background-color') || 'hsl(var(--background))';
+      if (rendererRef.current && cameraRef.current && mountRef.current) {
+        const { clientWidth, clientHeight } = mountRef.current;
+        if (clientWidth > 0 && clientHeight > 0) {
+            rendererRef.current.setSize(clientWidth, clientHeight);
+            cameraRef.current.aspect = clientWidth / clientHeight;
+            cameraRef.current.updateProjectionMatrix();
+        }
+        const newEditorBgColor = getComputedStyle(mountRef.current).getPropertyValue('background-color') || 'hsl(var(--background))';
         if (sceneRef.current) {
           sceneRef.current.background = new THREE.Color(newEditorBgColor);
         }
@@ -581,7 +583,9 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
     };
     
     const resizeObserver = new ResizeObserver(handleResize);
-    resizeObserver.observe(currentMount);
+    if(mountRef.current) {
+        resizeObserver.observe(mountRef.current);
+    }
     
     const themeObserver = new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
@@ -611,7 +615,18 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                 intersectedObject = intersectedObject.parent;
             }
             if (intersectedObject.userData.id) {
-                 setSelectedObjectId(intersectedObject.userData.id);
+                setSelectedObjectId(intersectedObject.userData.id);
+                if (intersectedObject.userData.type === 'Audio') {
+                    const audio = audioElementsRef.current.get(intersectedObject.userData.id);
+                    if (audio) {
+                        if (audio.paused) {
+                            audio.play().catch(e => console.error("Audio play failed:", e));
+                        } else {
+                            audio.pause();
+                            audio.currentTime = 0;
+                        }
+                    }
+                }
             } else {
                 setSelectedObjectId(null);
             }
@@ -640,8 +655,18 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             videoElementsRef.current.get(id)?.remove();
             videoElementsRef.current.delete(id);
           }
+          if (audioElementsRef.current.has(id)) {
+            const audio = audioElementsRef.current.get(id);
+            if (audio) {
+                audio.pause();
+                audio.src = '';
+                audio.load();
+            }
+            audioElementsRef.current.delete(id);
+          }
       });
       threeObjectsRef.current.clear();
+      audioElementsRef.current.clear();
       particleSystemsRef.current.forEach((particleSystem) => {
           sceneRef.current?.remove(particleSystem.system);
           if (particleSystem.system instanceof THREE.Mesh || particleSystem.system instanceof THREE.Points) {
@@ -675,7 +700,6 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             if (transformControlsRef.current?.object === obj) {
                 transformControlsRef.current.detach();
             }
-            // Dispose geometry and material
             if (obj instanceof THREE.Mesh || obj instanceof THREE.Sprite) {
                 if (obj.geometry) obj.geometry.dispose();
                  if (obj.material) {
@@ -694,6 +718,14 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             if (videoElementsRef.current.has(id)) {
               videoElementsRef.current.get(id)?.remove();
               videoElementsRef.current.delete(id);
+            }
+            if (audioElementsRef.current.has(id)) {
+              const audio = audioElementsRef.current.get(id);
+              if (audio) {
+                  audio.pause();
+                  audio.src = '';
+              }
+              audioElementsRef.current.delete(id);
             }
             threeObjectsRef.current.delete(id);
         }
@@ -801,6 +833,11 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                 if (speakerTexture) {
                     const spriteMaterial = new THREE.SpriteMaterial({ map: speakerTexture, color: 0xffffff });
                     newObject = new THREE.Sprite(spriteMaterial);
+                }
+                if (objData.src && !audioElementsRef.current.has(objData.id)) {
+                    const audioEl = new Audio(objData.src as string);
+                    audioEl.preload = 'auto';
+                    audioElementsRef.current.set(objData.id, audioEl);
                 }
                 break;
             case '3DText':

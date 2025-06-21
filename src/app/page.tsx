@@ -15,7 +15,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import { PanelRightOpen } from 'lucide-react';
 import type { ThreeSceneRef } from '@/components/cybernox/ThreeScene';
-import ModelPreview from '@/components/cybernox/ModelPreview';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export interface SceneObject {
   id: string;
@@ -33,6 +40,42 @@ export interface SceneObject {
 }
 
 export type ActiveTool = 'Move' | 'Rotate' | 'Scale' | null;
+
+interface AudioPreviewProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  audioData: {
+    src: string | ArrayBuffer;
+    name: string;
+  } | null;
+  onAddToScene: () => void;
+}
+
+const AudioPreview: React.FC<AudioPreviewProps> = ({ isOpen, onOpenChange, audioData, onAddToScene }) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Audio Preview: {audioData?.name}</DialogTitle>
+          <DialogDescription>
+            Listen to the audio below. Click "Add to Scene" to import it.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center justify-center py-4">
+          {audioData?.src && (
+            <audio controls autoPlay src={audioData.src as string} className="w-full">
+              Your browser does not support the audio element.
+            </audio>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={onAddToScene}>Add to Scene</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export default function Cybernox3DPage() {
   const { toast } = useToast();
@@ -78,8 +121,8 @@ export default function Cybernox3DPage() {
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube-1");
   const [activeTool, setActiveTool] = useState<ActiveTool>('Move');
   const [isObjectListVisible, setIsObjectListVisible] = useState(true);
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [previewModelData, setPreviewModelData] = useState<{ src: string | ArrayBuffer; name: string; format: string; } | null>(null);
+  const [isAudioPreviewOpen, setIsAudioPreviewOpen] = useState(false);
+  const [previewAudioData, setPreviewAudioData] = useState<{ src: string | ArrayBuffer; name: string; } | null>(null);
 
 
   const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string | ArrayBuffer, name?: string, format?: string } = {}) => {
@@ -87,7 +130,7 @@ export default function Cybernox3DPage() {
     
     let baseName: string = options.name || type;
     if (type === '3DText' && !options.name) baseName = '3D Text';
-    if (type === 'Model' && options.name) {
+    if ((type === 'Model' || type === 'Audio') && options.name) {
       baseName = options.name.split('.')[0];
     }
     
@@ -274,21 +317,13 @@ export default function Cybernox3DPage() {
       const reader = new FileReader();
       reader.onload = (readEvent) => {
         const src = readEvent.target?.result as string;
-        
-        let counter = 1;
-        let baseName = file.name.split('.')[0] || 'Audio';
-        let newObjectName = baseName;
-        while (sceneObjects.some(obj => obj.name === newObjectName)) {
-          newObjectName = `${baseName} (${counter})`;
-          counter++;
-        }
-        
-        addSceneObject('Audio', { src, name: newObjectName });
+        setPreviewAudioData({ src, name: file.name });
+        setIsAudioPreviewOpen(true);
       };
       reader.readAsDataURL(file);
     };
     input.click();
-  }, [addSceneObject, sceneObjects]);
+  }, []);
   
   const handleImportModel = useCallback((format: string) => {
     const input = document.createElement('input');
@@ -302,8 +337,7 @@ export default function Cybernox3DPage() {
       reader.onload = (readEvent) => {
         const content = readEvent.target?.result;
         if (content) {
-            setPreviewModelData({ src: content, name: file.name, format });
-            setIsPreviewModalOpen(true);
+            addSceneObject('Model', { src: content, name: file.name, format });
         }
       };
       
@@ -314,7 +348,7 @@ export default function Cybernox3DPage() {
       }
     };
     input.click();
-  }, []);
+  }, [addSceneObject]);
   
   const handleExportScene = useCallback((format: string) => {
     if (threeSceneRef.current) {
@@ -323,13 +357,20 @@ export default function Cybernox3DPage() {
     }
   }, []);
   
-  const handleAddToSceneFromPreview = useCallback(() => {
-    if (previewModelData) {
-      addSceneObject('Model', previewModelData);
-      setIsPreviewModalOpen(false);
-      setPreviewModelData(null);
+  const handleAddToSceneFromAudioPreview = useCallback(() => {
+    if (previewAudioData) {
+        let counter = 1;
+        let baseName = previewAudioData.name.split('.')[0] || 'Audio';
+        let newObjectName = baseName;
+        while (sceneObjects.some(obj => obj.name === newObjectName)) {
+          newObjectName = `${baseName} (${counter})`;
+          counter++;
+        }
+        addSceneObject('Audio', { src: previewAudioData.src, name: newObjectName });
+        setIsAudioPreviewOpen(false);
+        setPreviewAudioData(null);
     }
-  }, [previewModelData, addSceneObject]);
+  }, [previewAudioData, addSceneObject, sceneObjects]);
 
 
   return (
@@ -387,11 +428,11 @@ export default function Cybernox3DPage() {
             </aside>
         )}
       </div>
-      <ModelPreview
-        isOpen={isPreviewModalOpen}
-        onOpenChange={setIsPreviewModalOpen}
-        modelData={previewModelData}
-        onAddToScene={handleAddToSceneFromPreview}
+      <AudioPreview
+        isOpen={isAudioPreviewOpen}
+        onOpenChange={setIsAudioPreviewOpen}
+        audioData={previewAudioData}
+        onAddToScene={handleAddToSceneFromAudioPreview}
       />
     </TooltipProvider>
   );
