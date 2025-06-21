@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
@@ -15,7 +14,6 @@ interface ThreeSceneProps {
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
   activeTool: ActiveTool;
-  showShadows: boolean;
 }
 
 const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json';
@@ -26,7 +24,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   selectedObjectId,
   setSelectedObjectId,
   activeTool,
-  showShadows
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
@@ -90,6 +87,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     rendererRef.current = new THREE.WebGLRenderer({ antialias: true });
     rendererRef.current.setSize(currentMount.clientWidth, currentMount.clientHeight);
     rendererRef.current.setPixelRatio(window.devicePixelRatio);
+    rendererRef.current.shadowMap.enabled = true;
     currentMount.appendChild(rendererRef.current.domElement);
 
     orbitControlsRef.current = new OrbitControls(cameraRef.current, rendererRef.current.domElement);
@@ -123,6 +121,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
     directionalLightRef.current = new THREE.DirectionalLight(0xffffff, 1.2);
     directionalLightRef.current.position.set(8, 15, 10);
+    directionalLightRef.current.castShadow = true;
     directionalLightRef.current.shadow.mapSize.width = 1024;
     directionalLightRef.current.shadow.mapSize.height = 1024;
     directionalLightRef.current.shadow.camera.near = 0.5;
@@ -180,7 +179,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         pointerRef.current.x = ( (event.clientX - rect.left) / currentMount.clientWidth ) * 2 - 1;
         pointerRef.current.y = - ( (event.clientY - rect.top) / currentMount.clientHeight ) * 2 + 1;
         raycasterRef.current.setFromCamera( pointerRef.current, cameraRef.current );
-        const allSelectableObjects = Array.from(threeObjectsRef.current.values());
+        
+        const allSelectableObjects = Array.from(threeObjectsRef.current.values()).filter(o => o.visible);
         const intersects = raycasterRef.current.intersectObjects( allSelectableObjects, true );
         if ( intersects.length > 0 ) {
             let intersectedObject = intersects[0].object;
@@ -223,31 +223,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isClient, updateSceneObjectFromTransform]);
 
-  useEffect(() => {
-    if (rendererRef.current) {
-      rendererRef.current.shadowMap.enabled = showShadows;
-    }
-    if (directionalLightRef.current) {
-      directionalLightRef.current.castShadow = showShadows;
-    }
-    if (groundPlaneRef.current) {
-        (groundPlaneRef.current.material as THREE.ShadowMaterial).opacity = showShadows ? 0.3 : 0;
-    }
-
-    threeObjectsRef.current.forEach(obj => {
-      if (obj instanceof THREE.Mesh) {
-        obj.castShadow = showShadows;
-        obj.receiveShadow = showShadows; 
-         if (obj.userData.type === 'Plane') {
-            obj.castShadow = false; 
-        }
-      }
-    });
-    if (sceneRef.current && cameraRef.current && rendererRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-    }
-  }, [showShadows]);
-
 
   useEffect(() => {
     if (!isClient || !sceneRef.current) return;
@@ -270,6 +245,11 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     });
 
     sceneObjects.forEach(objData => {
+      // If the selected object is now hidden, deselect it.
+      if (selectedObjectId === objData.id && !(objData.visible ?? true)) {
+        setSelectedObjectId(null);
+      }
+      
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
       const is3DText = objData.type === '3DText';
       const material = existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial
@@ -290,6 +270,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         existingThreeObject.position.set(...objData.position);
         existingThreeObject.rotation.set(objData.rotation[0], objData.rotation[1], objData.rotation[2]);
         existingThreeObject.scale.set(...objData.scale);
+        existingThreeObject.visible = objData.visible ?? true;
         if (existingThreeObject instanceof THREE.Mesh) {
             if(existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
                 existingThreeObject.material.color.set(objData.color);
@@ -298,8 +279,8 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                     existingThreeObject.material.roughness = 0.1;
                 }
             }
-            existingThreeObject.castShadow = showShadows && objData.type !== 'Plane';
-            existingThreeObject.receiveShadow = showShadows;
+            existingThreeObject.castShadow = objData.type !== 'Plane';
+            existingThreeObject.receiveShadow = true;
         }
 
         if (objData.type === '3DText' && objData.text && font) {
@@ -354,8 +335,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         
         if (geometry) {
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.castShadow = showShadows && objData.type !== 'Plane';
-            mesh.receiveShadow = showShadows;
+            mesh.castShadow = objData.type !== 'Plane';
+            mesh.receiveShadow = true;
+            mesh.visible = objData.visible ?? true;
             mesh.userData = { id: objData.id, type: objData.type };
             if (objData.type === '3DText') {
                 mesh.userData.text = objData.text;
@@ -370,7 +352,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         }
       }
     });
-  }, [isClient, sceneObjects, sceneRef, font, showShadows]);
+  }, [isClient, sceneObjects, sceneRef, font, selectedObjectId, setSelectedObjectId]);
 
 
   useEffect(() => {
@@ -379,7 +361,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     const orbitControls = orbitControlsRef.current;
     const selectedObject3D = selectedObjectId ? threeObjectsRef.current.get(selectedObjectId) : null;
 
-    if (selectedObject3D && activeTool) {
+    if (selectedObject3D && activeTool && selectedObject3D.visible) {
         if (tc.object !== selectedObject3D) {
             tc.attach(selectedObject3D);
         }

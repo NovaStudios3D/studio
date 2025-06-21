@@ -1,9 +1,8 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -11,6 +10,7 @@ interface ObjectListPanelProps {
   objects: SceneObject[];
   selectedObjectId: string | null;
   onSelectObject: (id: string) => void;
+  onToggleVisibility: (id: string) => void;
 }
 
 const getIconForType = (type: SceneObject['type']) => {
@@ -32,7 +32,7 @@ const getIconForType = (type: SceneObject['type']) => {
   }
 };
 
-const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObjectId, onSelectObject }) => {
+const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObjectId, onSelectObject, onToggleVisibility }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-border">
@@ -48,18 +48,32 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
           <ul className="p-2 space-y-1">
             {objects.map((obj) => (
               <li key={obj.id}>
-                <Button
-                  variant={selectedObjectId === obj.id ? "secondary" : "ghost"}
-                  className={`w-full justify-start h-auto py-2 px-3 ${selectedObjectId === obj.id ? 'font-semibold' : ''}`}
-                  onClick={() => onSelectObject(obj.id)}
-                  aria-current={selectedObjectId === obj.id ? "page" : undefined}
-                >
-                  {getIconForType(obj.type)}
-                  <span className="truncate">{obj.name}</span>
-                  {obj.type === '3DText' && obj.text && (
-                     <span className="ml-2 text-xs text-muted-foreground truncate italic">"{obj.text}"</span>
-                  )}
-                </Button>
+                <div className="flex items-center group w-full">
+                    <Button
+                      variant={selectedObjectId === obj.id ? "secondary" : "ghost"}
+                      className={`flex-1 justify-start h-auto py-2 px-3 text-left ${selectedObjectId === obj.id ? 'font-semibold' : ''}`}
+                      onClick={() => onSelectObject(obj.id)}
+                      aria-current={selectedObjectId === obj.id ? "page" : undefined}
+                    >
+                      {getIconForType(obj.type)}
+                      <span className="truncate flex-1">{obj.name}</span>
+                      {obj.type === '3DText' && obj.text && (
+                         <span className="ml-2 text-xs text-muted-foreground truncate italic">"{obj.text}"</span>
+                      )}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-8 h-8 opacity-50 hover:opacity-100 group-hover:opacity-100"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleVisibility(obj.id);
+                        }}
+                        aria-label={obj.visible ?? true ? "Hide Object" : "Show Object"}
+                    >
+                        {(obj.visible ?? true) ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </Button>
+                </div>
               </li>
             ))}
           </ul>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -16,6 +15,7 @@ export interface SceneObject {
   scale: [number, number, number];
   color: string;
   text?: string; // Optional text property for 3DText
+  visible?: boolean;
 }
 
 export type ActiveTool = 'Move' | 'Rotate' | 'Scale' | null;
@@ -62,7 +62,6 @@ export default function Cybernox3DPage() {
   ]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube-1");
   const [activeTool, setActiveTool] = useState<ActiveTool>('Move');
-  const [showShadows, setShowShadows] = useState<boolean>(true);
 
 
   const addSceneObject = useCallback((type: SceneObject['type']) => {
@@ -97,6 +96,7 @@ export default function Cybernox3DPage() {
       scale: type === 'Plane' ? [2,2,1] : [1, 1, 1],
       color: objectColor,
       text: textContent,
+      visible: true,
     };
 
     setSceneObjects(prevObjects => [...prevObjects, newObject]);
@@ -161,10 +161,13 @@ export default function Cybernox3DPage() {
     }
   }, [selectedObjectId, sceneObjects, toast]);
 
-  const toggleShowShadows = useCallback(() => {
-    setShowShadows(prev => !prev);
-    toast({ title: "Shadows " + (!showShadows ? "Enabled" : "Disabled") });
-  }, [showShadows, toast]);
+  const toggleObjectVisibility = useCallback((objectId: string) => {
+    setSceneObjects(prevObjects =>
+      prevObjects.map(obj =>
+        obj.id === objectId ? { ...obj, visible: !(obj.visible ?? true) } : obj
+      )
+    );
+  }, []);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden antialiased font-body bg-background">
@@ -174,8 +177,6 @@ export default function Cybernox3DPage() {
         onAddShape={addSceneObject}
         onDeleteObject={deleteSelectedObject}
         onCopyObject={copySelectedObject}
-        showShadows={showShadows}
-        onToggleShadows={toggleShowShadows}
       />
       <main className="flex-1 relative overflow-hidden">
         <ThreeScene
@@ -184,7 +185,6 @@ export default function Cybernox3DPage() {
           selectedObjectId={selectedObjectId}
           setSelectedObjectId={setSelectedObjectId}
           activeTool={activeTool}
-          showShadows={showShadows}
         />
       </main>
       <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
@@ -193,6 +193,7 @@ export default function Cybernox3DPage() {
             objects={sceneObjects}
             selectedObjectId={selectedObjectId}
             onSelectObject={setSelectedObjectId}
+            onToggleVisibility={toggleObjectVisibility}
           />
         </div>
       </aside>
