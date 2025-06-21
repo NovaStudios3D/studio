@@ -10,8 +10,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Move, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square } from "lucide-react";
+import { Move, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -20,6 +24,9 @@ interface ToolbarLeftProps {
   onAddShape: (type: SceneObject['type']) => void;
   onDeleteObject: () => void;
   onCopyObject: () => void;
+  onAddParticle: (particleType: string) => void;
+  onImportImage: () => void;
+  onImportVideo: () => void;
 }
 
 const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
@@ -28,6 +35,9 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onAddShape,
   onDeleteObject,
   onCopyObject,
+  onAddParticle,
+  onImportImage,
+  onImportVideo,
 }) => {
   const mainTools = [
     { name: "Move" as ActiveTool, icon: <Move className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
@@ -48,11 +58,20 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
     { name: "Cylinder", icon: <CylinderIcon className="w-4 h-4 mr-2" />, displayName: "Cylinder" },
     { name: "3DText", icon: <Type className="w-4 h-4 mr-2" />, displayName: "3D Text" },
   ];
+  
+  const particles: { name: string; icon: JSX.Element }[] = [
+    { name: "Fire", icon: <Flame className="w-4 h-4 mr-2" /> },
+    { name: "Rain", icon: <CloudRain className="w-4 h-4 mr-2" /> },
+    { name: "Snow", icon: <Snowflake className="w-4 h-4 mr-2" /> },
+    { name: "Smoke", icon: <Wind className="w-4 h-4 mr-2" /> },
+    { name: "Magic", icon: <Sparkles className="w-4 h-4 mr-2" /> },
+    { name: "Ocean", icon: <Waves className="w-4 h-4 mr-2" /> },
+  ];
 
   return (
     <TooltipProvider delayDuration={100}>
       <div className="p-3 bg-card border-r border-border flex flex-col items-center space-y-3 shadow-md">
-        {/* Add Shape Dropdown */}
+        {/* Add Shape/Effect Dropdown */}
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -60,42 +79,86 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
                 <Button
                   variant="default"
                   className="rounded-full w-12 h-12 p-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110"
-                  aria-label="Add new shape"
+                  aria-label="Add new shape or effect"
                 >
                   <Plus className="w-6 h-6" />
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Add New Shape</p>
+              <p>Add New... (A)</p>
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent side="right" className="w-56">
-            <DropdownMenuLabel>Add Shape</DropdownMenuLabel>
+            <DropdownMenuLabel>Add to Scene</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {shapes.map((shape) => (
-              <DropdownMenuItem key={shape.name} className="cursor-pointer" onSelect={() => onAddShape(shape.name)}>
-                {shape.icon}
-                <span>{shape.displayName}</span>
-              </DropdownMenuItem>
-            ))}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Box className="w-4 h-4 mr-2" />
+                <span>Shapes</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  {shapes.map((shape) => (
+                    <DropdownMenuItem key={shape.name} className="cursor-pointer" onSelect={() => onAddShape(shape.name)}>
+                      {shape.icon}
+                      <span>{shape.displayName}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    <span>Effects</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        {particles.map((particle) => (
+                          <DropdownMenuItem key={particle.name} className="cursor-pointer" onSelect={() => onAddParticle(particle.name)}>
+                            {particle.icon}
+                            <span>{particle.name}</span>
+                          </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <div className="border-t border-border w-full my-1"></div>
+
+        {/* Import Media Buttons */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-primary/20" onClick={onImportImage} aria-label="Import Image">
+              <ImageIcon className="w-5 h-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right"><p>Import Image</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-primary/20" onClick={onImportVideo} aria-label="Import Video">
+              <Video className="w-5 h-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right"><p>Import Video</p></TooltipContent>
+        </Tooltip>
+
+        <div className="border-t border-border w-full my-1"></div>
 
         {/* Main Tools: Move, Rotate, Scale */}
         {mainTools.map((tool) => {
           const isActive = activeTool === tool.name;
-          const dynamicClasses = isActive
-            ? 'ring-2 ring-primary ring-offset-background ring-offset-2'
-            : 'hover:bg-primary/20';
-          
           return (
             <Tooltip key={tool.name}>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${dynamicClasses}`}
+                  className={`rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 ${isActive ? 'ring-2 ring-primary ring-offset-background ring-offset-2' : 'hover:bg-primary/20'}`}
                   onClick={() => setActiveTool(tool.name)}
                   aria-label={tool.ariaLabel}
                   aria-pressed={isActive}

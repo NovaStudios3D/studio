@@ -1,21 +1,24 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import ThreeScene from "@/components/cybernox/ThreeScene";
 import ToolbarLeft from "@/components/cybernox/ToolbarLeft";
 import ObjectListPanel from "@/components/cybernox/ObjectListPanel";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from '@/components/ui/button';
+import { PanelRightOpen } from 'lucide-react';
 
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText';
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
   color: string;
-  text?: string; // Optional text property for 3DText
+  text?: string; 
   visible?: boolean;
+  src?: string;
 }
 
 export type ActiveTool = 'Move' | 'Rotate' | 'Scale' | null;
@@ -62,17 +65,24 @@ export default function Cybernox3DPage() {
   ]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube-1");
   const [activeTool, setActiveTool] = useState<ActiveTool>('Move');
+  const [isObjectListVisible, setIsObjectListVisible] = useState(true);
 
 
-  const addSceneObject = useCallback((type: SceneObject['type']) => {
+  const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string, name?: string } = {}) => {
     const newObjectId = `object-${Date.now()}`;
-    let newObjectName = type === '3DText' ? '3D Text' : type;
+    
+    let baseName: string = options.name || type;
+    if (type === '3DText' && !options.name) baseName = '3D Text';
+    
     let counter = 1;
-    const baseNameForCount = type === '3DText' ? '3D Text' : type;
-    while (sceneObjects.some(obj => obj.name === `${baseNameForCount} ${counter}`)) {
-      counter++;
+    let newObjectName = baseName;
+    if (!options.name) {
+       while (sceneObjects.some(obj => obj.name === `${baseName} ${counter}`)) {
+         counter++;
+       }
+       newObjectName = `${baseName} ${counter}`;
     }
-    newObjectName = `${baseNameForCount} ${counter}`;
+
 
     let textContent: string | undefined = undefined;
     let objectColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
@@ -86,6 +96,10 @@ export default function Cybernox3DPage() {
       textContent = userText;
       objectColor = '#FFFFFF';
     }
+    
+    if (type === 'Image' || type === 'Video') {
+      objectColor = '#FFFFFF'
+    }
 
     const newObject: SceneObject = {
       id: newObjectId,
@@ -96,6 +110,7 @@ export default function Cybernox3DPage() {
       scale: type === 'Plane' ? [2,2,1] : [1, 1, 1],
       color: objectColor,
       text: textContent,
+      src: options.src,
       visible: true,
     };
 
@@ -169,6 +184,42 @@ export default function Cybernox3DPage() {
     );
   }, []);
 
+  const handleAddParticle = useCallback((particleType: string) => {
+    toast({
+      title: "Coming Soon!",
+      description: `${particleType} particle effects are not yet implemented.`,
+    });
+  }, [toast]);
+
+  const handleImportMedia = useCallback((accept: 'image/*' | 'video/*') => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (readEvent) => {
+        const src = readEvent.target?.result as string;
+        const type = accept === 'image/*' ? 'Image' : 'Video';
+        
+        let counter = 1;
+        let baseName = file.name.split('.')[0] || type;
+        let newObjectName = baseName;
+        while (sceneObjects.some(obj => obj.name === newObjectName)) {
+          newObjectName = `${baseName} (${counter})`;
+          counter++;
+        }
+        
+        addSceneObject(type, { src, name: newObjectName });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }, [addSceneObject, sceneObjects]);
+
+
   return (
     <div className="flex h-screen w-screen overflow-hidden antialiased font-body bg-background">
       <ToolbarLeft
@@ -177,6 +228,9 @@ export default function Cybernox3DPage() {
         onAddShape={addSceneObject}
         onDeleteObject={deleteSelectedObject}
         onCopyObject={copySelectedObject}
+        onAddParticle={handleAddParticle}
+        onImportImage={() => handleImportMedia('image/*')}
+        onImportVideo={() => handleImportMedia('video/*')}
       />
       <main className="flex-1 relative overflow-hidden">
         <ThreeScene
@@ -186,17 +240,37 @@ export default function Cybernox3DPage() {
           setSelectedObjectId={setSelectedObjectId}
           activeTool={activeTool}
         />
+        {!isObjectListVisible && (
+          <div className="absolute top-4 right-4 z-10">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" onClick={() => setIsObjectListVisible(true)} className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110">
+                    <PanelRightOpen />
+                    <span className="sr-only">Open Object Panel</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Show Objects Panel</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        )}
       </main>
-      <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
-        <div className="flex-grow min-h-0">
-          <ObjectListPanel
-            objects={sceneObjects}
-            selectedObjectId={selectedObjectId}
-            onSelectObject={setSelectedObjectId}
-            onToggleVisibility={toggleObjectVisibility}
-          />
-        </div>
-      </aside>
+      {isObjectListVisible && (
+          <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
+            <div className="flex-grow min-h-0">
+              <ObjectListPanel
+                objects={sceneObjects}
+                selectedObjectId={selectedObjectId}
+                onSelectObject={setSelectedObjectId}
+                onToggleVisibility={toggleObjectVisibility}
+                onTogglePanel={() => setIsObjectListVisible(false)}
+              />
+            </div>
+          </aside>
+      )}
     </div>
   );
 }

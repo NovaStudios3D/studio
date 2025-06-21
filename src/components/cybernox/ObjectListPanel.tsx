@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 
@@ -11,6 +11,7 @@ interface ObjectListPanelProps {
   selectedObjectId: string | null;
   onSelectObject: (id: string) => void;
   onToggleVisibility: (id: string) => void;
+  onTogglePanel: () => void;
 }
 
 const getIconForType = (type: SceneObject['type']) => {
@@ -27,19 +28,28 @@ const getIconForType = (type: SceneObject['type']) => {
       return <CylinderIcon className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "3DText":
       return <Type className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Image":
+        return <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Video":
+        return <Video className="w-4 h-4 mr-2 text-muted-foreground" />;
     default:
       return <Box className="w-4 h-4 mr-2 text-muted-foreground" />;
   }
 };
 
-const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObjectId, onSelectObject, onToggleVisibility }) => {
+const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObjectId, onSelectObject, onToggleVisibility, onTogglePanel }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h2 className="text-lg font-semibold font-headline">Objects:</h2>
-        <Button variant="ghost" size="icon" aria-label="Scene options menu">
-          <Menu className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center">
+            <Button variant="ghost" size="icon" aria-label="Scene options menu">
+              <Menu className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" aria-label="Hide panel" onClick={onTogglePanel}>
+              <PanelRightClose className="w-5 h-5" />
+            </Button>
+        </div>
       </div>
       <ScrollArea className="flex-1">
         {objects.length === 0 ? (

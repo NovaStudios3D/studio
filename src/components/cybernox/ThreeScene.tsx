@@ -38,7 +38,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
   const groundPlaneRef = useRef<THREE.Mesh<THREE.PlaneGeometry, THREE.ShadowMaterial> | null>(null);
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
 
-
+  const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const threeObjectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
@@ -112,7 +112,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
     pointerRef.current = new THREE.Vector2();
 
     gridHelperRef.current = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff);
-    (gridHelperRef.current.material as THREE.Material).opacity = 0.5; 
+    (gridHelperRef.current.material as THREE.Material).opacity = 0.15; 
     (gridHelperRef.current.material as THREE.Material).transparent = true;
     sceneRef.current.add(gridHelperRef.current);
 
@@ -133,7 +133,7 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       new THREE.ShadowMaterial({ color: 0x080808, opacity: 0.3 }) 
     );
     groundPlaneRef.current.rotation.x = -Math.PI / 2;
-    groundPlaneRef.current.position.y = -0.01; // Slightly below the grid to prevent Z-fighting
+    groundPlaneRef.current.position.y = -0.01;
     groundPlaneRef.current.receiveShadow = true;
     sceneRef.current.add(groundPlaneRef.current);
 
@@ -205,13 +205,17 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
       observer.disconnect();
       transformControlsRef.current?.dispose();
       orbitControlsRef.current?.dispose();
-      threeObjectsRef.current.forEach((obj) => {
-        sceneRef.current?.remove(obj);
-        if (obj instanceof THREE.Mesh) {
-          obj.geometry.dispose();
-          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-          else if (obj.material) obj.material.dispose();
-        }
+      threeObjectsRef.current.forEach((obj, id) => {
+          sceneRef.current?.remove(obj);
+          if (obj instanceof THREE.Mesh) {
+            obj.geometry.dispose();
+            if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+            else if (obj.material) obj.material.dispose();
+          }
+          if (videoElementsRef.current.has(id)) {
+            videoElementsRef.current.get(id)?.remove();
+            videoElementsRef.current.delete(id);
+          }
       });
       threeObjectsRef.current.clear();
       if (rendererRef.current?.domElement && currentMount.contains(rendererRef.current.domElement)) {
@@ -240,30 +244,39 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
                 if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
                 else if (obj.material) obj.material.dispose();
             }
+            if (videoElementsRef.current.has(id)) {
+              videoElementsRef.current.get(id)?.remove();
+              videoElementsRef.current.delete(id);
+            }
             threeObjectsRef.current.delete(id);
         }
     });
 
     sceneObjects.forEach(objData => {
-      // If the selected object is now hidden, deselect it.
       if (selectedObjectId === objData.id && !(objData.visible ?? true)) {
         setSelectedObjectId(null);
       }
       
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
-      const is3DText = objData.type === '3DText';
-      const material = existingThreeObject instanceof THREE.Mesh && existingThreeObject.material instanceof THREE.MeshStandardMaterial
-        ? existingThreeObject.material
-        : new THREE.MeshStandardMaterial({
+      
+      let material;
+      if (existingThreeObject instanceof THREE.Mesh) {
+          material = existingThreeObject.material;
+      } else {
+        const is3DText = objData.type === '3DText';
+        material = new THREE.MeshStandardMaterial({
             color: objData.color,
             metalness: is3DText ? 0.0 : 0.3,
             roughness: is3DText ? 0.1 : 0.6 
-          });
+        });
+      }
 
-      material.color.set(objData.color);
-      if (is3DText) {
-        material.metalness = 0.0;
-        material.roughness = 0.1;
+      if (material instanceof THREE.MeshStandardMaterial) {
+        material.color.set(objData.color);
+        if (objData.type === '3DText') {
+          material.metalness = 0.0;
+          material.roughness = 0.1;
+        }
       }
 
       if (existingThreeObject) {
@@ -272,13 +285,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
         existingThreeObject.scale.set(...objData.scale);
         existingThreeObject.visible = objData.visible ?? true;
         if (existingThreeObject instanceof THREE.Mesh) {
-            if(existingThreeObject.material instanceof THREE.MeshStandardMaterial) {
-                existingThreeObject.material.color.set(objData.color);
-                 if (is3DText) {
-                    existingThreeObject.material.metalness = 0.0;
-                    existingThreeObject.material.roughness = 0.1;
-                }
-            }
             existingThreeObject.castShadow = objData.type !== 'Plane';
             existingThreeObject.receiveShadow = true;
         }
@@ -300,39 +306,62 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({
 
       if (!existingThreeObject) {
         let geometry: THREE.BufferGeometry | undefined;
-        if (objData.type === '3DText') {
-          if (font && objData.text) {
-            const textGeo = new TextGeometry(objData.text, {
-              font: font,
-              size: 1.5, 
-              height: 0.4, 
-              curveSegments: 12,
-              bevelEnabled: true,
-              bevelThickness: 0.08, 
-              bevelSize: 0.03,
-              bevelOffset: 0,
-              bevelSegments: 4
-            });
-            textGeo.computeBoundingBox();
-            if (textGeo.boundingBox) {
-                const centerOffset = new THREE.Vector3();
-                textGeo.boundingBox.getCenter(centerOffset).negate();
-                textGeo.translate(centerOffset.x, centerOffset.y, centerOffset.z);
-            }
-            geometry = textGeo;
-          } else {
-            geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); 
-          }
-        } else {
-            switch (objData.type) {
-              case 'Sphere': geometry = new THREE.SphereGeometry(0.5, 32, 16); break;
-              case 'Plane': geometry = new THREE.PlaneGeometry(1, 1); break;
-              case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
-              case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
-              case 'Cube': default: geometry = new THREE.BoxGeometry(1, 1, 1); break;
-            }
+
+        switch (objData.type) {
+            case 'Sphere': geometry = new THREE.SphereGeometry(0.5, 32, 16); break;
+            case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
+            case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
+            case 'Cube': geometry = new THREE.BoxGeometry(1, 1, 1); break;
+            case 'Plane': case 'Image': case 'Video':
+                geometry = new THREE.PlaneGeometry(1, 1); break;
+            case '3DText':
+              if (font && objData.text) {
+                const textGeo = new TextGeometry(objData.text, {
+                  font: font,
+                  size: 1.5, 
+                  height: 0.6,
+                  curveSegments: 12,
+                  bevelEnabled: true,
+                  bevelThickness: 0.1,
+                  bevelSize: 0.05,
+                  bevelOffset: 0,
+                  bevelSegments: 4
+                });
+                textGeo.computeBoundingBox();
+                if (textGeo.boundingBox) {
+                    const centerOffset = new THREE.Vector3();
+                    textGeo.boundingBox.getCenter(centerOffset).negate();
+                    textGeo.translate(centerOffset.x, centerOffset.y, centerOffset.z);
+                }
+                geometry = textGeo;
+              }
+              break;
         }
         
+        if(objData.type === 'Image' && objData.src) {
+            const texture = new THREE.TextureLoader().load(objData.src, (tex) => {
+                const mesh = threeObjectsRef.current.get(objData.id) as THREE.Mesh;
+                if(mesh) {
+                    const aspect = tex.image.width / tex.image.height;
+                    mesh.scale.set(mesh.scale.y * aspect, mesh.scale.y, 1);
+                }
+            });
+            material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+        }
+        
+        if(objData.type === 'Video' && objData.src) {
+            const videoEl = document.createElement('video');
+            videoEl.src = objData.src;
+            videoEl.crossOrigin = 'anonymous';
+            videoEl.loop = true;
+            videoEl.muted = true;
+            videoEl.play();
+            videoElementsRef.current.set(objData.id, videoEl);
+            const texture = new THREE.VideoTexture(videoEl);
+            material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+        }
+
+
         if (geometry) {
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = objData.type !== 'Plane';
