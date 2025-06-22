@@ -1,0 +1,38 @@
+# Cybernox3D Editor Features
+
+## Core 3D Scene
+- 3D scene rendering using Three.js.
+- Orbit controls for camera manipulation (pan, zoom, rotate).
+- Dynamic lighting that changes with the time of day.
+- Ground plane with a detailed grid for object placement.
+
+## Object Management
+- Add primitive shapes: Cube, Sphere, Plane, Pyramid, Cylinder, Monkey, Capsule, Torus, TorusKnot.
+- Add 3D Text with user-provided input.
+- Copy/duplicate selected objects.
+- Delete selected objects.
+- Toggle visibility for each object in the scene.
+
+## Transformation Tools
+- Transformation gizmos for Move, Rotate, and Scale.
+- Keyboard shortcuts to switch between tools (M, R, S).
+- Keyboard shortcuts for Copy (Ctrl+D) and Delete.
+
+## Import/Export
+- Import Media: Images and Videos, which are displayed on planes.
+- Import Audio: Preview audio before adding it to the scene as a spatial sound object.
+- Import 3D Models: Supports GLTF/GLB, OBJ, and STL formats.
+- Export Scene: Export the entire scene in GLTF or OBJ format.
+- Project Save/Load: Save and load the entire scene state to/from a custom `.cyb` file.
+
+## UI Panels
+- Left Toolbar: Quick access to add shapes, effects, and use main tools.
+- Object List Panel: Lists all objects in the scene, allows selection, and visibility toggle.
+- Properties Panel: Appears when an object is selected. A "View Properties" button opens a dialog to edit an object's name, position, rotation, scale, and color.
+- Undo/Redo functionality with buttons in the Object List Panel.
+
+## Special Effects & Features
+- Particle Systems: Fire, Rain, Snow, Steam, Magic, Water, Fog.
+- Skybox: Add a 360-degree sky background.
+- Waypoints: Add map pin-style waypoints to the scene.
+- Time of Day Slider: Control the scene's lighting by adjusting the time from 0 to 24.

@@ -1,0 +1,21 @@
+# Important Project Files for Cybernox3D
+
+This list contains the core files that define the application's functionality and user interface. These files are written in Next.js (React) and TypeScript, not plain HTML/CSS/JS.
+
+## Main Application Logic and UI
+- **src/app/page.tsx**: The main component. It manages the state of the entire application, including the list of scene objects, selected objects, active tools, and history for undo/redo. It orchestrates all the UI panels and the 3D scene.
+- **src/app/layout.tsx**: The main layout for the entire app.
+- **src/app/globals.css**: The global stylesheet, including the color theme (light and dark mode).
+
+## Core 3D Component
+- **src/components/cybernox/ThreeScene.tsx**: This is the most critical file for the 3D rendering. It uses Three.js to create and manage the WebGL canvas, render all objects, handle object selection via raycasting, and manage the transformation controls (move, rotate, scale).
+
+## UI Panel Components
+- **src/components/cybernox/ToolbarLeft.tsx**: The main toolbar on the left for adding objects and selecting tools.
+- **src/components/cybernox/ObjectListPanel.tsx**: The panel on the right that lists all scene objects and includes the undo/redo buttons and sky settings.
+- **src/components/cybernox/PropertiesPanel.tsx**: The panel that appears below the object list, allowing you to edit the properties of a selected object in a popup dialog.
+
+## Project Configuration
+- **package.json**: Defines all the project dependencies (like react, next, three) and scripts.
+- **next.config.ts**: Configuration file for the Next.js framework.
+- **tailwind.config.ts**: Configuration for the Tailwind CSS styling framework.
