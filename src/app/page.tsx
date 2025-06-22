@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +11,7 @@ import {
 import ThreeScene from "@/components/cybernox/ThreeScene";
 import ToolbarLeft from "@/components/cybernox/ToolbarLeft";
 import ObjectListPanel from "@/components/cybernox/ObjectListPanel";
+import PropertiesPanel from "@/components/cybernox/PropertiesPanel";
 import { Button } from '@/components/ui/button';
 import { PanelRightOpen } from 'lucide-react';
 import type { ThreeSceneRef } from '@/components/cybernox/ThreeScene';
@@ -26,7 +27,7 @@ import {
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model' | 'Audio' | 'Skybox' | 'Monkey' | 'Capsule' | 'Torus' | 'TorusKnot';
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model' | 'Audio' | 'Skybox' | 'Monkey' | 'Capsule' | 'Torus' | 'TorusKnot' | 'Waypoint';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
@@ -50,35 +51,7 @@ interface AudioPreviewProps {
   onAddToScene: () => void;
 }
 
-const AudioPreview: React.FC<AudioPreviewProps> = ({ isOpen, onOpenChange, audioData, onAddToScene }) => {
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Audio Preview: {audioData?.name}</DialogTitle>
-          <DialogDescription>
-            Listen to the audio below. Click "Add to Scene" to import it.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex items-center justify-center py-4">
-          {audioData?.src && (
-            <audio controls autoPlay src={audioData.src as string} className="w-full">
-              Your browser does not support the audio element.
-            </audio>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onAddToScene}>Add to Scene</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-export default function Cybernox3DPage() {
-  const threeSceneRef = useRef<ThreeSceneRef>(null);
-  const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([
+const initialSceneObjects: SceneObject[] = [
     {
       id: "initial-cube-1",
       name: "Blue Cube",
@@ -115,7 +88,71 @@ export default function Cybernox3DPage() {
       scale: [0.5, 1, 0.5],
       color: "#F4B400"
     },
-  ]);
+  ];
+
+const AudioPreview: React.FC<AudioPreviewProps> = ({ isOpen, onOpenChange, audioData, onAddToScene }) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Audio Preview: {audioData?.name}</DialogTitle>
+          <DialogDescription>
+            Listen to the audio below. Click "Add to Scene" to import it.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center justify-center py-4">
+          {audioData?.src && (
+            <audio controls autoPlay src={audioData.src as string} className="w-full">
+              Your browser does not support the audio element.
+            </audio>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={onAddToScene}>Add to Scene</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default function Cybernox3DPage() {
+  const threeSceneRef = useRef<ThreeSceneRef>(null);
+  
+  const [history, setHistory] = useState<SceneObject[][]>([initialSceneObjects]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const sceneObjects = history[historyIndex];
+  
+  const setSceneObjects = (updater: React.SetStateAction<SceneObject[]>, recordHistory = true) => {
+    const newObjects = typeof updater === 'function' ? updater(sceneObjects) : updater;
+    
+    if (recordHistory) {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(newObjects);
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    } else {
+       const newHistory = [...history];
+       newHistory[historyIndex] = newObjects;
+       setHistory(newHistory);
+    }
+  };
+  
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prev => prev - 1);
+    }
+  }, [historyIndex]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(prev => prev + 1);
+    }
+  }, [historyIndex, history.length]);
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
+
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>("initial-cube-1");
   const [activeTool, setActiveTool] = useState<ActiveTool>('Move');
   const [isObjectListVisible, setIsObjectListVisible] = useState(true);
@@ -123,6 +160,9 @@ export default function Cybernox3DPage() {
   const [previewAudioData, setPreviewAudioData] = useState<{ src: string | ArrayBuffer; name: string; } | null>(null);
   const [skyTime, setSkyTime] = useState<number>(12);
 
+  const selectedObject = useMemo(() => {
+    return sceneObjects.find(obj => obj.id === selectedObjectId) ?? null;
+  }, [sceneObjects, selectedObjectId]);
 
   const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string | ArrayBuffer, name?: string, format?: string } = {}) => {
     const newObjectId = `object-${Date.now()}`;
@@ -148,7 +188,6 @@ export default function Cybernox3DPage() {
       newObjectName = 'Skybox';
     }
 
-
     let textContent: string | undefined = undefined;
     let objectColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
 
@@ -161,7 +200,7 @@ export default function Cybernox3DPage() {
       objectColor = '#FFFFFF';
     }
     
-    if (type === 'Image' || type === 'Video' || type === 'Model' || type === 'Audio' || type === 'Skybox') {
+    if (type === 'Image' || type === 'Video' || type === 'Model' || type === 'Audio' || type === 'Skybox' || type === 'Waypoint') {
       objectColor = '#FFFFFF'
     }
 
@@ -188,20 +227,16 @@ export default function Cybernox3DPage() {
 
     setSceneObjects(prevObjects => [...prevObjects, newObject]);
     setSelectedObjectId(newObjectId);
-  }, [sceneObjects]);
+  }, [sceneObjects, historyIndex, history]);
 
   const deleteSelectedObject = useCallback(() => {
-    if (!selectedObjectId) {
-      return;
-    }
+    if (!selectedObjectId) return;
     setSceneObjects(prevObjects => prevObjects.filter(obj => obj.id !== selectedObjectId));
     setSelectedObjectId(null);
   }, [selectedObjectId]);
 
   const copySelectedObject = useCallback(() => {
-    if (!selectedObjectId) {
-      return;
-    }
+    if (!selectedObjectId) return;
     const originalObject = sceneObjects.find(obj => obj.id === selectedObjectId);
     if (originalObject) {
       const newObjectId = `object-${Date.now()}`;
@@ -243,10 +278,13 @@ export default function Cybernox3DPage() {
       )
     );
   }, []);
+  
+  const updateObjectProperties = useCallback((objectId: string, newProps: Partial<SceneObject>, record = true) => {
+    setSceneObjects(prev => prev.map(obj => obj.id === objectId ? { ...obj, ...newProps } : obj), record);
+  }, [history, historyIndex]);
 
   const handleAddParticle = useCallback((particleType: string) => {
     const newObjectId = `object-${Date.now()}`;
-    
     let counter = 1;
     let baseName = particleType;
     let newObjectName = baseName;
@@ -266,9 +304,8 @@ export default function Cybernox3DPage() {
       color: '#FFFFFF',
       visible: true,
     };
-
     setSceneObjects(prevObjects => [...prevObjects, newObject]);
-  }, [sceneObjects]);
+  }, [sceneObjects, history, historyIndex]);
 
   const handleImportMedia = useCallback((accept: 'image/*' | 'video/*') => {
     const input = document.createElement('input');
@@ -282,7 +319,6 @@ export default function Cybernox3DPage() {
       reader.onload = (readEvent) => {
         const src = readEvent.target?.result as string;
         const type = accept === 'image/*' ? 'Image' : 'Video';
-        
         let counter = 1;
         let baseName = file.name.split('.')[0] || type;
         let newObjectName = baseName;
@@ -290,7 +326,6 @@ export default function Cybernox3DPage() {
           newObjectName = `${baseName} (${counter})`;
           counter++;
         }
-        
         addSceneObject(type, { src, name: newObjectName });
       };
       reader.readAsDataURL(file);
@@ -332,7 +367,6 @@ export default function Cybernox3DPage() {
             addSceneObject('Model', { src: content, name: file.name, format });
         }
       };
-      
       if (format === 'gltf' || format === 'glb' || format === 'stl') {
         reader.readAsArrayBuffer(file);
       } else {
@@ -377,8 +411,7 @@ export default function Cybernox3DPage() {
         if (obj.src instanceof ArrayBuffer) {
           let binary = '';
           const bytes = new Uint8Array(obj.src);
-          const len = bytes.byteLength;
-          for (let i = 0; i < len; i++) {
+          for (let i = 0; i < bytes.byteLength; i++) {
             binary += String.fromCharCode(bytes[i]);
           }
           const base64 = window.btoa(binary);
@@ -419,9 +452,8 @@ export default function Cybernox3DPage() {
                 if (obj.isArrayBuffer && typeof obj.src === 'string' && obj.src.startsWith('data:application/octet-stream;base64,')) {
                   const base64 = obj.src.split(',')[1];
                   const binary_string = window.atob(base64);
-                  const len = binary_string.length;
-                  const bytes = new Uint8Array(len);
-                  for (let i = 0; i < len; i++) {
+                  const bytes = new Uint8Array(binary_string.length);
+                  for (let i = 0; i < binary_string.length; i++) {
                     bytes[i] = binary_string.charCodeAt(i);
                   }
                   const newObj = { ...obj, src: bytes.buffer };
@@ -444,7 +476,15 @@ export default function Cybernox3DPage() {
       reader.readAsText(file);
     };
     input.click();
-  }, []);
+  }, [history, historyIndex]);
+
+  const handleTransformEnd = useCallback(() => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(sceneObjects);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  }, [history, historyIndex, sceneObjects]);
+
 
   return (
     <TooltipProvider>
@@ -468,7 +508,8 @@ export default function Cybernox3DPage() {
           <ThreeScene
             ref={threeSceneRef}
             sceneObjects={sceneObjects}
-            setSceneObjects={setSceneObjects}
+            setSceneObjects={(updater) => setSceneObjects(updater, false)}
+            onTransformEnd={handleTransformEnd}
             selectedObjectId={selectedObjectId}
             setSelectedObjectId={setSelectedObjectId}
             activeTool={activeTool}
@@ -492,7 +533,6 @@ export default function Cybernox3DPage() {
         </main>
         {isObjectListVisible && (
             <aside className="w-72 bg-card border-l border-border flex flex-col shadow-lg">
-              <div className="flex-grow min-h-0">
                 <ObjectListPanel
                   objects={sceneObjects}
                   selectedObjectId={selectedObjectId}
@@ -501,8 +541,16 @@ export default function Cybernox3DPage() {
                   onTogglePanel={() => setIsObjectListVisible(false)}
                   skyTime={skyTime}
                   setSkyTime={setSkyTime}
+                  onUndo={handleUndo}
+                  onRedo={handleRedo}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
                 />
-              </div>
+                <PropertiesPanel
+                  key={selectedObjectId}
+                  selectedObject={selectedObject}
+                  onUpdateObject={updateObjectProperties}
+                />
             </aside>
         )}
       </div>

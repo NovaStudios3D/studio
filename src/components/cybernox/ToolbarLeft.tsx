@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, Music, Sun, Shapes, Bot, Pill, LifeBuoy, Spline } from "lucide-react";
+import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, Music, Sun, Shapes, Bot, Pill, LifeBuoy, Spline, MapPin } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -121,6 +121,10 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
              <DropdownMenuItem className="cursor-pointer" onSelect={() => onAddShape('Skybox')}>
               <Sun className="w-4 h-4 mr-2" />
               <span>Skybox</span>
+            </DropdownMenuItem>
+             <DropdownMenuItem className="cursor-pointer" onSelect={() => onAddShape('Waypoint')}>
+              <MapPin className="w-4 h-4 mr-2" />
+              <span>Waypoint</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuSub>

@@ -19,6 +19,7 @@ const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typefac
 interface ThreeSceneProps {
   sceneObjects: SceneObject[];
   setSceneObjects: React.Dispatch<React.SetStateAction<SceneObject[]>>;
+  onTransformEnd: () => void;
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
   activeTool: ActiveTool;
@@ -33,6 +34,7 @@ export interface ThreeSceneRef {
 const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   sceneObjects,
   setSceneObjects,
+  onTransformEnd,
   selectedObjectId,
   setSelectedObjectId,
   activeTool,
@@ -60,9 +62,9 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   const raycasterRef = useRef<THREE.Raycaster | null>(null);
   const pointerRef = useRef<THREE.Vector2 | null>(null);
   
-  const { dotTexture, sparkTexture, smokeTexture, speakerTexture } = useMemo(() => {
+  const { dotTexture, sparkTexture, smokeTexture, speakerTexture, waypointTexture } = useMemo(() => {
     if (typeof window === 'undefined') {
-        return { dotTexture: null, sparkTexture: null, smokeTexture: null, speakerTexture: null };
+        return { dotTexture: null, sparkTexture: null, smokeTexture: null, speakerTexture: null, waypointTexture: null };
     }
     
     const createParticleTexture = (type: 'dot' | 'spark' | 'smoke') => {
@@ -128,12 +130,39 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
 
         return new THREE.CanvasTexture(canvas);
     };
+    
+    const createWaypointTexture = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get 2d context');
+
+        ctx.fillStyle = 'rgba(255, 87, 34, 0.9)'; // orange
+        ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        ctx.lineWidth = 4;
+        
+        ctx.beginPath();
+        ctx.arc(32, 24, 18, Math.PI, 0); // top semi-circle
+        ctx.lineTo(32, 60); // point
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(32, 24, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        return new THREE.CanvasTexture(canvas);
+    };
 
     return { 
         dotTexture: createParticleTexture('dot'), 
         sparkTexture: createParticleTexture('spark'),
         smokeTexture: createParticleTexture('smoke'),
         speakerTexture: createSpeakerTexture(),
+        waypointTexture: createWaypointTexture(),
     };
   }, []);
 
@@ -435,7 +464,6 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
 
   const updateSceneObjectFromTransform = useCallback((transformedObject: THREE.Object3D) => {
     if (!transformedObject.userData.id) return;
-
     const objectId = transformedObject.userData.id;
     setSceneObjects(prevObjects =>
       prevObjects.map(obj => {
@@ -538,6 +566,9 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         if (orbitControlsRef.current) {
             orbitControlsRef.current.enabled = !event.value;
         }
+        if (!event.value) {
+            onTransformEnd();
+        }
     });
     transformControlsRef.current.addEventListener('objectChange', () => {
         if (transformControlsRef.current?.object) {
@@ -549,14 +580,14 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
     pointerRef.current = new THREE.Vector2();
 
     // Main grid
-    gridHelperRef.current = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff);
-    (gridHelperRef.current.material as THREE.Material).opacity = 0.25;
+    gridHelperRef.current = new THREE.GridHelper(100, 10, 0xffffff, 0xffffff);
+    (gridHelperRef.current.material as THREE.Material).opacity = 0.15;
     (gridHelperRef.current.material as THREE.Material).transparent = true;
     sceneRef.current.add(gridHelperRef.current);
 
     // Subdivisions grid
-    const subGridHelper = new THREE.GridHelper(1000, 400, 0xffffff, 0xffffff);
-    (subGridHelper.material as THREE.Material).opacity = 0.1;
+    const subGridHelper = new THREE.GridHelper(100, 100, 0xffffff, 0xffffff);
+    (subGridHelper.material as THREE.Material).opacity = 0.08;
     (subGridHelper.material as THREE.Material).transparent = true;
     sceneRef.current.add(subGridHelper);
 
@@ -718,7 +749,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
       sceneRef.current?.clear();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, updateSceneObjectFromTransform]);
+  }, [isClient]);
 
   useEffect(() => {
     if (!sceneRef.current || !mountRef.current) return;
@@ -879,7 +910,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
       let existingThreeObject = threeObjectsRef.current.get(objData.id);
       
       let material: THREE.Material | THREE.Material[];
-      if (existingThreeObject instanceof THREE.Mesh) {
+      if (existingThreeObject instanceof THREE.Mesh || existingThreeObject instanceof THREE.Sprite) {
           material = existingThreeObject.material;
       } else {
         const is3DText = objData.type === '3DText';
@@ -942,11 +973,19 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
                 if (speakerTexture) {
                     const spriteMaterial = new THREE.SpriteMaterial({ map: speakerTexture, color: 0xffffff });
                     newObject = new THREE.Sprite(spriteMaterial);
+                    newObject.scale.set(0.5, 0.5, 0.5);
                 }
                 if (objData.src && !audioElementsRef.current.has(objData.id)) {
                     const audioEl = new Audio(objData.src as string);
                     audioEl.preload = 'auto';
                     audioElementsRef.current.set(objData.id, audioEl);
+                }
+                break;
+             case 'Waypoint':
+                if (waypointTexture) {
+                    const spriteMaterial = new THREE.SpriteMaterial({ map: waypointTexture, sizeAttenuation: false });
+                    newObject = new THREE.Sprite(spriteMaterial);
+                    newObject.scale.set(0.05, 0.05, 1);
                 }
                 break;
             case '3DText':
@@ -1095,7 +1134,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         }
       }
     });
-  }, [isClient, sceneObjects, font, selectedObjectId, setSelectedObjectId, setSceneObjects, createParticleSystem, speakerTexture]);
+  }, [isClient, sceneObjects, font, selectedObjectId, setSelectedObjectId, setSceneObjects, createParticleSystem, speakerTexture, waypointTexture]);
 
 
   useEffect(() => {

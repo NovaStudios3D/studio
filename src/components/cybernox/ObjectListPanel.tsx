@@ -3,11 +3,12 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves, Cloud, Shapes, AudioWaveform, Sun, Bot, Pill, LifeBuoy, Spline } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves, Cloud, Shapes, AudioWaveform, Sun, Bot, Pill, LifeBuoy, Spline, MapPin, Undo2, Redo2 } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 interface ObjectListPanelProps {
   objects: SceneObject[];
@@ -17,6 +18,10 @@ interface ObjectListPanelProps {
   onTogglePanel: () => void;
   skyTime: number;
   setSkyTime: (time: number) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const getIconForObject = (obj: SceneObject) => {
@@ -51,6 +56,8 @@ const getIconForObject = (obj: SceneObject) => {
         return <AudioWaveform className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Skybox":
         return <Sun className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Waypoint":
+        return <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "ParticleSystem":
         switch(obj.particleType) {
             case "Fire": return <Flame className="w-4 h-4 mr-2 text-muted-foreground" />;
@@ -67,11 +74,11 @@ const getIconForObject = (obj: SceneObject) => {
   }
 };
 
-const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObjectId, onSelectObject, onToggleVisibility, onTogglePanel, skyTime, setSkyTime }) => {
+const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObjectId, onSelectObject, onToggleVisibility, onTogglePanel, skyTime, setSkyTime, onUndo, onRedo, canUndo, canRedo }) => {
   const skyboxObject = objects.find(obj => obj.type === 'Skybox');
   
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-grow min-h-0">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h2 className="text-lg font-semibold font-headline">Objects:</h2>
         <div className="flex items-center">
@@ -82,6 +89,16 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
               <PanelRightClose className="w-5 h-5" />
             </Button>
         </div>
+      </div>
+      <div className="p-2 border-b border-border flex items-center justify-center space-x-2">
+        <Button variant="outline" size="sm" onClick={onUndo} disabled={!canUndo} className="flex-1">
+          <Undo2 className="w-4 h-4 mr-2"/>
+          Undo
+        </Button>
+        <Button variant="outline" size="sm" onClick={onRedo} disabled={!canRedo} className="flex-1">
+          <Redo2 className="w-4 h-4 mr-2"/>
+          Redo
+        </Button>
       </div>
       <ScrollArea className="flex-1">
         {objects.length === 0 ? (
@@ -96,7 +113,7 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
                       className={`flex-1 justify-start h-auto py-2 px-3 text-left ${selectedObjectId === obj.id ? 'font-semibold' : ''}`}
                       onClick={() => onSelectObject(obj.id)}
                       aria-current={selectedObjectId === obj.id ? "page" : undefined}
-                      disabled={obj.type === 'ParticleSystem' || obj.type === 'Skybox'}
+                      disabled={obj.type === 'ParticleSystem' || obj.type === 'Skybox' || obj.type === 'Waypoint'}
                     >
                       {getIconForObject(obj)}
                       <span className="truncate flex-1">{obj.name}</span>
@@ -141,9 +158,6 @@ const ObjectListPanel: React.FC<ObjectListPanelProps> = ({ objects, selectedObje
           </div>
         </div>
       )}
-      <div className="p-3 border-t border-border text-xs text-muted-foreground">
-        {objects.length} object{objects.length !== 1 ? 's' : ''} in scene.
-      </div>
     </div>
   );
 };
