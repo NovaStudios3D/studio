@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves, Cloud, Shapes, AudioWaveform, Sun } from "lucide-react";
+import { Menu, Box, Circle, Square, Pyramid, Cylinder as CylinderIcon, Type, Eye, EyeOff, PanelRightClose, Image as ImageIcon, Video, Sparkles, Flame, CloudRain, Snowflake, Wind, Waves, Cloud, Shapes, AudioWaveform, Sun, Bot, Pill, LifeBuoy, Spline } from "lucide-react";
 import React from "react";
 import type { SceneObject } from "@/app/page";
 import { Slider } from "@/components/ui/slider";
@@ -31,6 +31,14 @@ const getIconForObject = (obj: SceneObject) => {
       return <Pyramid className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Cylinder":
       return <CylinderIcon className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Monkey":
+      return <Bot className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Capsule":
+      return <Pill className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "Torus":
+      return <LifeBuoy className="w-4 h-4 mr-2 text-muted-foreground" />;
+    case "TorusKnot":
+        return <Spline className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "3DText":
       return <Type className="w-4 h-4 mr-2 text-muted-foreground" />;
     case "Image":

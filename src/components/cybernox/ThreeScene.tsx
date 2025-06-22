@@ -548,10 +548,18 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
     raycasterRef.current = new THREE.Raycaster();
     pointerRef.current = new THREE.Vector2();
 
+    // Main grid
     gridHelperRef.current = new THREE.GridHelper(1000, 100, 0xffffff, 0xffffff);
-    (gridHelperRef.current.material as THREE.Material).opacity = 0.15; 
+    (gridHelperRef.current.material as THREE.Material).opacity = 0.25;
     (gridHelperRef.current.material as THREE.Material).transparent = true;
     sceneRef.current.add(gridHelperRef.current);
+
+    // Subdivisions grid
+    const subGridHelper = new THREE.GridHelper(1000, 400, 0xffffff, 0xffffff);
+    (subGridHelper.material as THREE.Material).opacity = 0.1;
+    (subGridHelper.material as THREE.Material).transparent = true;
+    sceneRef.current.add(subGridHelper);
+
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     sceneRef.current.add(ambientLight);
@@ -924,6 +932,10 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
             case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
             case 'Cube': geometry = new THREE.BoxGeometry(1, 1, 1); break;
+            case 'Monkey': geometry = new THREE.DodecahedronGeometry(0.5); break;
+            case 'Capsule': geometry = new THREE.CapsuleGeometry(0.25, 0.5, 4, 8); break;
+            case 'Torus': geometry = new THREE.TorusGeometry(0.4, 0.2, 16, 100); break;
+            case 'TorusKnot': geometry = new THREE.TorusKnotGeometry(0.4, 0.1, 100, 16); break;
             case 'Plane': case 'Image': case 'Video':
                 geometry = new THREE.PlaneGeometry(1, 1); break;
             case 'Audio':

@@ -26,7 +26,7 @@ import {
 export interface SceneObject {
   id: string;
   name: string;
-  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model' | 'Audio' | 'Skybox';
+  type: 'Cube' | 'Sphere' | 'Plane' | 'Pyramid' | 'Cylinder' | '3DText' | 'Image' | 'Video' | 'ParticleSystem' | 'Model' | 'Audio' | 'Skybox' | 'Monkey' | 'Capsule' | 'Torus' | 'TorusKnot';
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];

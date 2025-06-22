@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, Music, Sun, Shapes } from "lucide-react";
+import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, Music, Sun, Shapes, Bot, Pill, LifeBuoy, Spline } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -67,6 +67,10 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
     { name: "Plane", icon: <Square className="w-4 h-4 mr-2" />, displayName: "Plane" },
     { name: "Pyramid", icon: <Pyramid className="w-4 h-4 mr-2" />, displayName: "Pyramid" },
     { name: "Cylinder", icon: <CylinderIcon className="w-4 h-4 mr-2" />, displayName: "Cylinder" },
+    { name: "Monkey", icon: <Bot className="w-4 h-4 mr-2" />, displayName: "Monkey" },
+    { name: "Capsule", icon: <Pill className="w-4 h-4 mr-2" />, displayName: "Capsule" },
+    { name: "Torus", icon: <LifeBuoy className="w-4 h-4 mr-2" />, displayName: "Torus" },
+    { name: "TorusKnot", icon: <Spline className="w-4 h-4 mr-2" />, displayName: "Torus Knot" },
     { name: "3DText", icon: <Type className="w-4 h-4 mr-2" />, displayName: "3D Text" },
   ];
   
@@ -164,10 +168,12 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="cursor-pointer" onSelect={onImportImage}>
-                            Image
+                            <ImageIcon className="w-4 h-4 mr-2" />
+                            <span>Image</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer" onSelect={onImportVideo}>
-                            Video
+                            <Video className="w-4 h-4 mr-2" />
+                            <span>Video</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer" onSelect={onImportAudio}>
                             <Music className="w-4 h-4 mr-2" />
