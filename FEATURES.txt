@@ -1,38 +1,40 @@
 # Cybernox3D Editor Features
 
-## Core 3D Scene
-- 3D scene rendering using Three.js.
-- Orbit controls for camera manipulation (pan, zoom, rotate).
-- Dynamic lighting that changes with the time of day.
-- Ground plane with a detailed grid for object placement.
+## Core 3D Engine
+- **3D Scene Rendering**: Utilizes Three.js for a high-performance WebGL viewport.
+- **Camera Controls**: Full orbit controls for panning, zooming, and rotating the camera.
+- **Dynamic Lighting**: A time-of-day system that realistically changes lighting and shadows.
+- **Ground & Grid**: A detailed grid on a ground plane for precise object placement.
 
 ## Object Management
-- Add primitive shapes: Cube, Sphere, Plane, Pyramid, Cylinder, Monkey, Capsule, Torus, TorusKnot.
-- Add 3D Text with user-provided input.
-- Copy/duplicate selected objects.
-- Delete selected objects.
-- Toggle visibility for each object in the scene.
+- **Add Primitive Shapes**: Cube, Sphere, Plane, Pyramid, Cylinder, Monkey, Capsule, Torus, TorusKnot.
+- **Add 3D Text**: Create 3D text objects from user input.
+- **Select Objects**: Click objects in the scene or in the Object List to select them.
+- **Copy/Duplicate**: Clone the selected object with a single action (Ctrl+D).
+- **Delete**: Remove selected objects from the scene (Delete key).
+- **Hide/Show Objects**: Toggle the visibility of any object using the eye icon in the Object List.
+- **Undo/Redo**: Step backward and forward through your actions using dedicated Undo/Redo buttons.
 
-## Transformation Tools
-- Transformation gizmos for Move, Rotate, and Scale.
-- Keyboard shortcuts to switch between tools (M, R, S).
-- Keyboard shortcuts for Copy (Ctrl+D) and Delete.
+## Transformation & Properties
+- **Transform Gizmos**: Manipulate objects with visual gizmos for Move, Rotate, and Scale.
+- **Keyboard Shortcuts**: Switch between tools (M, R, S), copy (Ctrl+D), and delete.
+- **Properties Panel**: View key properties of the selected object.
+- **Property Editor**: A popup dialog to precisely edit an object's name, position, rotation, scale, and color.
 
-## Import/Export
-- Import Media: Images and Videos, which are displayed on planes.
-- Import Audio: Preview audio before adding it to the scene as a spatial sound object.
-- Import 3D Models: Supports GLTF/GLB, OBJ, and STL formats.
-- Export Scene: Export the entire scene in GLTF or OBJ format.
-- Project Save/Load: Save and load the entire scene state to/from a custom `.cyb` file.
+## Import & Export
+- **Import Media**: Add Images and Videos to the scene, which are automatically displayed on planes.
+- **Import Audio**: Import sound files with an audio preview before adding them as spatial sound objects.
+- **Import 3D Models**: Load 3D models in GLTF/GLB, OBJ, and STL formats.
+- **Export Scene**: Export the entire scene as a GLTF or OBJ file.
+- **Project Save/Load**: Save the complete scene state to a `.cyb` file and load it back into the editor.
 
-## UI Panels
-- Left Toolbar: Quick access to add shapes, effects, and use main tools.
-- Object List Panel: Lists all objects in the scene, allows selection, and visibility toggle.
-- Properties Panel: Appears when an object is selected. A "View Properties" button opens a dialog to edit an object's name, position, rotation, scale, and color.
-- Undo/Redo functionality with buttons in the Object List Panel.
+## UI & Panels
+- **Left Toolbar**: Quick access to add shapes, effects, and select primary tools.
+- **Object List Panel**: A comprehensive list of all objects in the scene. This panel can be closed and re-opened to maximize viewport space.
+- **Tooltips**: Helpful tooltips for all toolbar icons and buttons.
 
-## Special Effects & Features
-- Particle Systems: Fire, Rain, Snow, Steam, Magic, Water, Fog.
-- Skybox: Add a 360-degree sky background.
-- Waypoints: Add map pin-style waypoints to the scene.
-- Time of Day Slider: Control the scene's lighting by adjusting the time from 0 to 24.
+## Special Effects & Advanced Features
+- **Particle Systems**: Add pre-configured particle effects like Fire, Rain, Snow, Steam, Magic, Water, and Fog.
+- **Skybox**: Enclose the entire scene in a 360-degree sky background.
+- **Waypoints**: Place visual map-pin style waypoints within the scene.
+- **Time of Day Slider**: Interactively control the scene's lighting by dragging a slider from 0 to 24 hours.
