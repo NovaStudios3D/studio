@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -119,36 +119,43 @@ const AudioPreview: React.FC<AudioPreviewProps> = ({ isOpen, onOpenChange, audio
 export default function Cybernox3DPage() {
   const threeSceneRef = useRef<ThreeSceneRef>(null);
   
+  const [sceneObjects, setSceneObjects] = useState<SceneObject[]>(initialSceneObjects);
   const [history, setHistory] = useState<SceneObject[][]>([initialSceneObjects]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  const sceneObjects = history[historyIndex];
-  
-  const setSceneObjects = (updater: React.SetStateAction<SceneObject[]>, recordHistory = true) => {
-    const newObjects = typeof updater === 'function' ? updater(sceneObjects) : updater;
+
+  const commitUpdate = useCallback((updater: (prevObjects: SceneObject[]) => SceneObject[], newSelectionId?: string | null) => {
+    const newObjects = updater(history[historyIndex]);
     
-    if (recordHistory) {
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(newObjects);
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-    } else {
-       const newHistory = [...history];
-       newHistory[historyIndex] = newObjects;
-       setHistory(newHistory);
+    setHistory(prevHistory => {
+        const newHistory = prevHistory.slice(0, historyIndex + 1);
+        newHistory.push(newObjects);
+        return newHistory;
+    });
+    
+    const newIndex = historyIndex + 1;
+    setHistoryIndex(newIndex);
+    setSceneObjects(newObjects);
+
+    if (newSelectionId !== undefined) {
+      setSelectedObjectId(newSelectionId);
     }
-  };
-  
+  }, [history, historyIndex]);
+
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
-      setHistoryIndex(prev => prev - 1);
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setSceneObjects(history[newIndex]);
     }
-  }, [historyIndex]);
+  }, [historyIndex, history]);
 
   const handleRedo = useCallback(() => {
     if (historyIndex < history.length - 1) {
-      setHistoryIndex(prev => prev + 1);
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setSceneObjects(history[newIndex]);
     }
-  }, [historyIndex, history.length]);
+  }, [historyIndex, history]);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -167,145 +174,156 @@ export default function Cybernox3DPage() {
   const addSceneObject = useCallback((type: SceneObject['type'], options: { src?: string | ArrayBuffer, name?: string, format?: string } = {}) => {
     const newObjectId = `object-${Date.now()}`;
     
-    let baseName: string = options.name || type;
-    if (type === '3DText' && !options.name) baseName = '3D Text';
-    if ((type === 'Model' || type === 'Audio') && options.name) {
-      baseName = options.name.split('.')[0];
-    }
-    
-    let counter = 1;
-    let newObjectName = baseName;
-    if (!options.name || type !== 'Model') {
-       while (sceneObjects.some(obj => obj.name === newObjectName)) {
-         newObjectName = `${baseName} ${counter++}`;
-       }
-    }
-    
-    if (type === 'Skybox') {
-      if (sceneObjects.some(obj => obj.type === 'Skybox')) {
-        return; // Only one skybox allowed
+    commitUpdate((currentObjects) => {
+      let baseName: string = options.name || type;
+      if (type === '3DText' && !options.name) baseName = '3D Text';
+      if ((type === 'Model' || type === 'Audio') && options.name) {
+        baseName = options.name.split('.')[0];
       }
-      newObjectName = 'Skybox';
-    }
-
-    let textContent: string | undefined = undefined;
-    let objectColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
-
-    if (type === '3DText') {
-      const userText = window.prompt("Enter text for the 3D object:", "Hello");
-      if (userText === null || userText.trim() === "") {
-        return;
+      
+      let counter = 1;
+      let newObjectName = baseName;
+      if (!options.name || type !== 'Model') {
+        while (currentObjects.some(obj => obj.name === newObjectName)) {
+          newObjectName = `${baseName} ${counter++}`;
+        }
       }
-      textContent = userText;
-      objectColor = '#FFFFFF';
-    }
-    
-    if (type === 'Image' || type === 'Video' || type === 'Model' || type === 'Audio' || type === 'Skybox' || type === 'Waypoint') {
-      objectColor = '#FFFFFF'
-    }
+      
+      if (type === 'Skybox') {
+        if (currentObjects.some(obj => obj.type === 'Skybox')) {
+          return currentObjects;
+        }
+        newObjectName = 'Skybox';
+      }
 
-    let newObjectScale: [number, number, number] = [1, 1, 1];
-    if (type === 'Plane') {
-        newObjectScale = [2, 2, 1];
-    } else if (type === 'Image' || type === 'Video') {
-        newObjectScale = [5, 5, 1];
-    }
+      let textContent: string | undefined = undefined;
+      let objectColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
 
-    const newObject: SceneObject = {
-      id: newObjectId,
-      name: newObjectName,
-      type: type,
-      position: (type === 'Model' || type === 'Skybox') ? [0, 0, 0] : [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
-      rotation: [0, 0, 0],
-      scale: newObjectScale,
-      color: objectColor,
-      text: textContent,
-      src: options.src,
-      format: options.format,
-      visible: true,
-    };
+      if (type === '3DText') {
+        const userText = window.prompt("Enter text for the 3D object:", "Hello");
+        if (userText === null || userText.trim() === "") {
+          return currentObjects;
+        }
+        textContent = userText;
+        objectColor = '#FFFFFF';
+      }
+      
+      if (type === 'Image' || type === 'Video' || type === 'Model' || type === 'Audio' || type === 'Skybox' || type === 'Waypoint') {
+        objectColor = '#FFFFFF'
+      }
 
-    setSceneObjects(prevObjects => [...prevObjects, newObject]);
-    setSelectedObjectId(newObjectId);
-  }, [sceneObjects, historyIndex, history]);
+      let newObjectScale: [number, number, number] = [1, 1, 1];
+      if (type === 'Plane') {
+          newObjectScale = [2, 2, 1];
+      } else if (type === 'Image' || type === 'Video') {
+          newObjectScale = [5, 5, 1];
+      }
+
+      const newObject: SceneObject = {
+        id: newObjectId,
+        name: newObjectName,
+        type: type,
+        position: (type === 'Model' || type === 'Skybox') ? [0, 0, 0] : [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
+        rotation: [0, 0, 0],
+        scale: newObjectScale,
+        color: objectColor,
+        text: textContent,
+        src: options.src,
+        format: options.format,
+        visible: true,
+      };
+
+      return [...currentObjects, newObject];
+    }, newObjectId);
+  }, [commitUpdate]);
 
   const deleteSelectedObject = useCallback(() => {
     if (!selectedObjectId) return;
-    setSceneObjects(prevObjects => prevObjects.filter(obj => obj.id !== selectedObjectId));
-    setSelectedObjectId(null);
-  }, [selectedObjectId]);
+    commitUpdate(
+      prevObjects => prevObjects.filter(obj => obj.id !== selectedObjectId),
+      null
+    );
+  }, [selectedObjectId, commitUpdate]);
 
   const copySelectedObject = useCallback(() => {
     if (!selectedObjectId) return;
     const originalObject = sceneObjects.find(obj => obj.id === selectedObjectId);
     if (originalObject) {
       const newObjectId = `object-${Date.now()}`;
-      let baseName = originalObject.type === '3DText' ? '3D Text' : originalObject.type;
-      
-      const nameWithoutCopySuffix = originalObject.name.replace(/ \(\text{Copy} \d+\)$/, "");
-      const nameWithoutNumberSuffix = nameWithoutCopySuffix.replace(/ \d+$/, "");
-      if (sceneObjects.some(obj => obj.name.startsWith(nameWithoutNumberSuffix))) {
-          baseName = nameWithoutNumberSuffix;
-      }
+      commitUpdate(currentObjects => {
+        let baseName = originalObject.type === '3DText' ? '3D Text' : originalObject.type;
+        
+        const nameWithoutCopySuffix = originalObject.name.replace(/ \(\text{Copy} \d+\)$/, "");
+        const nameWithoutNumberSuffix = nameWithoutCopySuffix.replace(/ \d+$/, "");
+        if (currentObjects.some(obj => obj.name.startsWith(nameWithoutNumberSuffix))) {
+            baseName = nameWithoutNumberSuffix;
+        }
 
-      let counter = 1;
-      let newObjectName = `${baseName} (Copy ${counter})`;
+        let counter = 1;
+        let newObjectName = `${baseName} (Copy ${counter})`;
 
-      while (sceneObjects.some(obj => obj.name === newObjectName)) {
-        counter++;
-        newObjectName = `${baseName} (Copy ${counter})`;
-      }
+        while (currentObjects.some(obj => obj.name === newObjectName)) {
+          counter++;
+          newObjectName = `${baseName} (Copy ${counter})`;
+        }
 
-      const newObject: SceneObject = {
-        ...originalObject,
-        id: newObjectId,
-        name: newObjectName,
-        position: [
-          originalObject.position[0] + 0.5,
-          originalObject.position[1],
-          originalObject.position[2] + 0.5,
-        ],
-      };
-      setSceneObjects(prevObjects => [...prevObjects, newObject]);
-      setSelectedObjectId(newObjectId);
+        const newObject: SceneObject = {
+          ...originalObject,
+          id: newObjectId,
+          name: newObjectName,
+          position: [
+            originalObject.position[0] + 0.5,
+            originalObject.position[1],
+            originalObject.position[2] + 0.5,
+          ],
+        };
+        return [...currentObjects, newObject];
+      }, newObjectId);
     }
-  }, [selectedObjectId, sceneObjects]);
+  }, [selectedObjectId, sceneObjects, commitUpdate]);
 
   const toggleObjectVisibility = useCallback((objectId: string) => {
-    setSceneObjects(prevObjects =>
+    commitUpdate(prevObjects =>
       prevObjects.map(obj =>
         obj.id === objectId ? { ...obj, visible: !(obj.visible ?? true) } : obj
       )
     );
-  }, []);
+  }, [commitUpdate]);
   
-  const updateObjectProperties = useCallback((objectId: string, newProps: Partial<SceneObject>, record = true) => {
-    setSceneObjects(prev => prev.map(obj => obj.id === objectId ? { ...obj, ...newProps } : obj), record);
-  }, [history, historyIndex]);
+  const updateObjectProperties = useCallback((objectId: string, newProps: Partial<SceneObject>) => {
+    commitUpdate(prev => prev.map(obj => obj.id === objectId ? { ...obj, ...newProps } : obj));
+  }, [commitUpdate]);
+  
+  const handleLiveUpdate = useCallback((objectId: string, newProps: Partial<SceneObject>) => {
+    setSceneObjects(prev => prev.map(obj => obj.id === objectId ? { ...obj, ...newProps } : obj));
+  }, []);
+
 
   const handleAddParticle = useCallback((particleType: string) => {
     const newObjectId = `object-${Date.now()}`;
-    let counter = 1;
-    let baseName = particleType;
-    let newObjectName = baseName;
-    while (sceneObjects.some(obj => obj.name === `${baseName} ${counter}`)) {
-        counter++;
-    }
-    newObjectName = `${baseName} ${counter}`;
+    commitUpdate(currentObjects => {
+      let counter = 1;
+      let baseName = particleType;
+      let newObjectName = baseName;
+      while (currentObjects.some(obj => obj.name === `${baseName} ${counter}`)) {
+          counter++;
+      }
+      newObjectName = `${baseName} ${counter}`;
 
-    const newObject: SceneObject = {
-      id: newObjectId,
-      name: newObjectName,
-      type: 'ParticleSystem',
-      particleType: particleType,
-      position: [0, 1.5, 0], 
-      rotation: [0, 0, 0],
-      scale: [1, 1, 1],
-      color: '#FFFFFF',
-      visible: true,
-    };
-    setSceneObjects(prevObjects => [...prevObjects, newObject]);
-  }, [sceneObjects, history, historyIndex]);
+      const newObject: SceneObject = {
+        id: newObjectId,
+        name: newObjectName,
+        type: 'ParticleSystem',
+        particleType: particleType,
+        position: [0, 1.5, 0], 
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+        color: '#FFFFFF',
+        visible: true,
+      };
+      return [...currentObjects, newObject];
+    });
+  }, [commitUpdate]);
 
   const handleImportMedia = useCallback((accept: 'image/*' | 'video/*') => {
     const input = document.createElement('input');
@@ -319,19 +337,34 @@ export default function Cybernox3DPage() {
       reader.onload = (readEvent) => {
         const src = readEvent.target?.result as string;
         const type = accept === 'image/*' ? 'Image' : 'Video';
-        let counter = 1;
-        let baseName = file.name.split('.')[0] || type;
-        let newObjectName = baseName;
-        while (sceneObjects.some(obj => obj.name === newObjectName)) {
-          newObjectName = `${baseName} (${counter})`;
-          counter++;
-        }
-        addSceneObject(type, { src, name: newObjectName });
+        
+        const newObjectId = `object-${Date.now()}-media`;
+        commitUpdate((currentObjects) => {
+            let counter = 1;
+            let baseName = file.name.split('.')[0] || type;
+            let newObjectName = baseName;
+            while (currentObjects.some(obj => obj.name === newObjectName)) {
+              newObjectName = `${baseName} (${counter})`;
+              counter++;
+            }
+            const newObject: SceneObject = {
+              id: newObjectId,
+              name: newObjectName,
+              type,
+              position: [Math.random() * 4 - 2, 2.5 + Math.random() * 1, Math.random() * 4 - 2],
+              rotation: [0, 0, 0],
+              scale: [5, 5, 1],
+              color: '#FFFFFF',
+              src,
+              visible: true,
+            };
+            return [...currentObjects, newObject];
+        }, newObjectId);
       };
       reader.readAsDataURL(file);
     };
     input.click();
-  }, [addSceneObject, sceneObjects]);
+  }, [commitUpdate]);
 
   const handleImportAudio = useCallback(() => {
     const input = document.createElement('input');
@@ -384,18 +417,11 @@ export default function Cybernox3DPage() {
   
   const handleAddToSceneFromAudioPreview = useCallback(() => {
     if (previewAudioData) {
-        let counter = 1;
-        let baseName = previewAudioData.name.split('.')[0] || 'Audio';
-        let newObjectName = baseName;
-        while (sceneObjects.some(obj => obj.name === newObjectName)) {
-          newObjectName = `${baseName} (${counter})`;
-          counter++;
-        }
-        addSceneObject('Audio', { src: previewAudioData.src, name: newObjectName });
+        addSceneObject('Audio', { src: previewAudioData.src, name: previewAudioData.name });
         setIsAudioPreviewOpen(false);
         setPreviewAudioData(null);
     }
-  }, [previewAudioData, addSceneObject, sceneObjects]);
+  }, [previewAudioData, addSceneObject]);
   
   const handleObjectListClick = useCallback((objectId: string) => {
     setSelectedObjectId(objectId);
@@ -462,9 +488,7 @@ export default function Cybernox3DPage() {
                 }
                 return obj;
               });
-
-              setSceneObjects(deserializedObjects);
-              setSelectedObjectId(null);
+              commitUpdate(() => deserializedObjects, null);
             } else {
               console.error("Invalid .cyb file format: root should be an array.");
             }
@@ -476,15 +500,11 @@ export default function Cybernox3DPage() {
       reader.readAsText(file);
     };
     input.click();
-  }, [history, historyIndex]);
+  }, [commitUpdate]);
 
-  const handleTransformEnd = useCallback(() => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(sceneObjects);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  }, [history, historyIndex, sceneObjects]);
-
+  const handleTransformCommit = useCallback(() => {
+    commitUpdate(() => sceneObjects);
+  }, [commitUpdate, sceneObjects]);
 
   return (
     <TooltipProvider>
@@ -508,8 +528,8 @@ export default function Cybernox3DPage() {
           <ThreeScene
             ref={threeSceneRef}
             sceneObjects={sceneObjects}
-            setSceneObjects={(updater) => setSceneObjects(updater, false)}
-            onTransformEnd={handleTransformEnd}
+            onLiveUpdate={setSceneObjects}
+            onTransformCommit={handleTransformCommit}
             selectedObjectId={selectedObjectId}
             setSelectedObjectId={setSelectedObjectId}
             activeTool={activeTool}
@@ -550,6 +570,7 @@ export default function Cybernox3DPage() {
                   key={selectedObjectId}
                   selectedObject={selectedObject}
                   onUpdateObject={updateObjectProperties}
+                  onLiveUpdate={handleLiveUpdate}
                 />
             </aside>
         )}

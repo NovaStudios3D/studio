@@ -18,8 +18,8 @@ const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typefac
 
 interface ThreeSceneProps {
   sceneObjects: SceneObject[];
-  setSceneObjects: React.Dispatch<React.SetStateAction<SceneObject[]>>;
-  onTransformEnd: () => void;
+  onLiveUpdate: (updater: React.SetStateAction<SceneObject[]>) => void;
+  onTransformCommit: () => void;
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
   activeTool: ActiveTool;
@@ -33,8 +33,8 @@ export interface ThreeSceneRef {
 
 const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   sceneObjects,
-  setSceneObjects,
-  onTransformEnd,
+  onLiveUpdate,
+  onTransformCommit,
   selectedObjectId,
   setSelectedObjectId,
   activeTool,
@@ -465,7 +465,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   const updateSceneObjectFromTransform = useCallback((transformedObject: THREE.Object3D) => {
     if (!transformedObject.userData.id) return;
     const objectId = transformedObject.userData.id;
-    setSceneObjects(prevObjects =>
+    onLiveUpdate(prevObjects =>
       prevObjects.map(obj => {
         if (obj.id === objectId) {
           const newPosition = transformedObject.position.toArray() as [number, number, number];
@@ -476,7 +476,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         return obj;
       })
     );
-  }, [setSceneObjects]);
+  }, [onLiveUpdate]);
   
   useImperativeHandle(ref, () => ({
     exportScene(format: string) {
@@ -567,7 +567,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             orbitControlsRef.current.enabled = !event.value;
         }
         if (!event.value) {
-            onTransformEnd();
+            onTransformCommit();
         }
     });
     transformControlsRef.current.addEventListener('objectChange', () => {
@@ -963,7 +963,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
             case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
             case 'Cube': geometry = new THREE.BoxGeometry(1, 1, 1); break;
-            case 'Monkey': geometry = new THREE.DodecahedronGeometry(0.5); break;
+            case 'Monkey': geometry = new THREE.TorusKnotGeometry(0.4, 0.15, 64, 8); break;
             case 'Capsule': geometry = new THREE.CapsuleGeometry(0.25, 0.5, 4, 8); break;
             case 'Torus': geometry = new THREE.TorusGeometry(0.4, 0.2, 16, 100); break;
             case 'TorusKnot': geometry = new THREE.TorusKnotGeometry(0.4, 0.1, 100, 16); break;
@@ -1073,7 +1073,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         if(objData.type === 'Image' && objData.src) {
             const texture = new THREE.TextureLoader().load(objData.src as string, (tex) => {
                 const aspect = tex.image.width / tex.image.height;
-                setSceneObjects(prevObjects =>
+                onLiveUpdate(prevObjects =>
                     prevObjects.map(o => {
                         if (o.id === objData.id) {
                             const baseScaleY = o.scale[1];
@@ -1095,7 +1095,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             
             videoEl.onloadedmetadata = () => {
                 const aspect = videoEl.videoWidth / videoEl.videoHeight;
-                setSceneObjects(prevObjects =>
+                onLiveUpdate(prevObjects =>
                     prevObjects.map(o => {
                         if (o.id === objData.id) {
                             const baseScaleY = o.scale[1];
@@ -1134,7 +1134,8 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         }
       }
     });
-  }, [isClient, sceneObjects, font, selectedObjectId, setSelectedObjectId, setSceneObjects, createParticleSystem, speakerTexture, waypointTexture]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, sceneObjects, font, selectedObjectId, setSelectedObjectId, createParticleSystem, speakerTexture, waypointTexture]);
 
 
   useEffect(() => {
