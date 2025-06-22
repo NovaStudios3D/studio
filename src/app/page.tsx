@@ -125,24 +125,19 @@ export default function Cybernox3DPage() {
 
   const commitUpdate = useCallback((updater: (prevObjects: SceneObject[]) => SceneObject[], newSelectionId?: string | null) => {
     setHistory(prevHistory => {
-        const currentHistory = prevHistory.slice(0, historyIndex + 1);
-        const newObjects = updater(currentHistory[currentHistory.length - 1]);
-        const newHistory = [...currentHistory, newObjects];
+        const currentObjects = prevHistory[historyIndex];
+        const newObjects = updater(currentObjects);
+        const newHistory = [...prevHistory.slice(0, historyIndex + 1), newObjects];
+        setHistoryIndex(newHistory.length - 1);
+        setSceneObjects(newObjects);
+        
+        if (newSelectionId !== undefined) {
+          setSelectedObjectId(newSelectionId);
+        }
+
         return newHistory;
     });
-    
-    setHistoryIndex(prevIndex => {
-        const newIndex = prevIndex + 1;
-        const updatedHistory = history.slice(0, newIndex);
-        const newObjects = updater(updatedHistory[updatedHistory.length - 1] || []);
-        setSceneObjects(newObjects);
-        return newIndex;
-    });
-
-    if (newSelectionId !== undefined) {
-      setSelectedObjectId(newSelectionId);
-    }
-  }, [history, historyIndex]);
+  }, [historyIndex]);
 
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
@@ -300,6 +295,41 @@ export default function Cybernox3DPage() {
   const handleLiveUpdate = useCallback((objectId: string, newProps: Partial<SceneObject>) => {
     setSceneObjects(prev => prev.map(obj => obj.id === objectId ? { ...obj, ...newProps } : obj));
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement).tagName === 'INPUT' || (event.target as HTMLElement).tagName === 'TEXTAREA') {
+        return;
+      }
+
+      switch (event.key.toLowerCase()) {
+        case 'm':
+          setActiveTool('Move');
+          break;
+        case 'r':
+          setActiveTool('Rotate');
+          break;
+        case 's':
+          setActiveTool('Scale');
+          break;
+        case 'delete':
+        case 'backspace':
+          deleteSelectedObject();
+          break;
+        case 'd':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            copySelectedObject();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [deleteSelectedObject, copySelectedObject]);
 
 
   const handleAddParticle = useCallback((particleType: string) => {
@@ -527,7 +557,6 @@ export default function Cybernox3DPage() {
           <ThreeScene
             ref={threeSceneRef}
             sceneObjects={sceneObjects}
-            onLiveUpdate={setSceneObjects}
             onUpdateObject={updateObjectProperties}
             selectedObjectId={selectedObjectId}
             setSelectedObjectId={setSelectedObjectId}

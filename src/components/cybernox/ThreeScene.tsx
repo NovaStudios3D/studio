@@ -18,7 +18,6 @@ const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typefac
 
 interface ThreeSceneProps {
   sceneObjects: SceneObject[];
-  onLiveUpdate: (updater: React.SetStateAction<SceneObject[]>) => void;
   onUpdateObject: (id: string, newProps: Partial<SceneObject>) => void;
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
@@ -33,7 +32,6 @@ export interface ThreeSceneRef {
 
 const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   sceneObjects,
-  onLiveUpdate,
   onUpdateObject,
   selectedObjectId,
   setSelectedObjectId,
@@ -1061,15 +1059,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         if(objData.type === 'Image' && objData.src) {
             const texture = new THREE.TextureLoader().load(objData.src as string, (tex) => {
                 const aspect = tex.image.width / tex.image.height;
-                onLiveUpdate(prevObjects =>
-                    prevObjects.map(o => {
-                        if (o.id === objData.id) {
-                            const baseScaleY = o.scale[1];
-                            return { ...o, scale: [baseScaleY * aspect, baseScaleY, 1] as [number, number, number] };
-                        }
-                        return o;
-                    })
-                );
+                onUpdateObject(objData.id, { scale: [objData.scale[1] * aspect, objData.scale[1], 1] });
             });
             material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
         }
@@ -1083,15 +1073,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             
             videoEl.onloadedmetadata = () => {
                 const aspect = videoEl.videoWidth / videoEl.videoHeight;
-                onLiveUpdate(prevObjects =>
-                    prevObjects.map(o => {
-                        if (o.id === objData.id) {
-                            const baseScaleY = o.scale[1];
-                            return { ...o, scale: [baseScaleY * aspect, baseScaleY, 1] as [number, number, number] };
-                        }
-                        return o;
-                    })
-                );
+                onUpdateObject(objData.id, { scale: [objData.scale[1] * aspect, objData.scale[1], 1] });
             };
 
             videoEl.play();
