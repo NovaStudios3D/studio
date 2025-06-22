@@ -124,17 +124,20 @@ export default function Cybernox3DPage() {
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const commitUpdate = useCallback((updater: (prevObjects: SceneObject[]) => SceneObject[], newSelectionId?: string | null) => {
-    const newObjects = updater(history[historyIndex]);
-    
     setHistory(prevHistory => {
-        const newHistory = prevHistory.slice(0, historyIndex + 1);
-        newHistory.push(newObjects);
+        const currentHistory = prevHistory.slice(0, historyIndex + 1);
+        const newObjects = updater(currentHistory[currentHistory.length - 1]);
+        const newHistory = [...currentHistory, newObjects];
         return newHistory;
     });
     
-    const newIndex = historyIndex + 1;
-    setHistoryIndex(newIndex);
-    setSceneObjects(newObjects);
+    setHistoryIndex(prevIndex => {
+        const newIndex = prevIndex + 1;
+        const updatedHistory = history.slice(0, newIndex);
+        const newObjects = updater(updatedHistory[updatedHistory.length - 1] || []);
+        setSceneObjects(newObjects);
+        return newIndex;
+    });
 
     if (newSelectionId !== undefined) {
       setSelectedObjectId(newSelectionId);
@@ -502,10 +505,6 @@ export default function Cybernox3DPage() {
     input.click();
   }, [commitUpdate]);
 
-  const handleTransformCommit = useCallback(() => {
-    commitUpdate(() => sceneObjects);
-  }, [commitUpdate, sceneObjects]);
-
   return (
     <TooltipProvider>
       <div className="flex h-screen w-screen overflow-hidden antialiased font-body bg-background">
@@ -529,7 +528,7 @@ export default function Cybernox3DPage() {
             ref={threeSceneRef}
             sceneObjects={sceneObjects}
             onLiveUpdate={setSceneObjects}
-            onTransformCommit={handleTransformCommit}
+            onUpdateObject={updateObjectProperties}
             selectedObjectId={selectedObjectId}
             setSelectedObjectId={setSelectedObjectId}
             activeTool={activeTool}

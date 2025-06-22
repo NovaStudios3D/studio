@@ -19,7 +19,7 @@ const FONT_PATH = 'https://threejs.org/examples/fonts/helvetiker_regular.typefac
 interface ThreeSceneProps {
   sceneObjects: SceneObject[];
   onLiveUpdate: (updater: React.SetStateAction<SceneObject[]>) => void;
-  onTransformCommit: () => void;
+  onUpdateObject: (id: string, newProps: Partial<SceneObject>) => void;
   selectedObjectId: string | null;
   setSelectedObjectId: (id: string | null) => void;
   activeTool: ActiveTool;
@@ -34,7 +34,7 @@ export interface ThreeSceneRef {
 const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
   sceneObjects,
   onLiveUpdate,
-  onTransformCommit,
+  onUpdateObject,
   selectedObjectId,
   setSelectedObjectId,
   activeTool,
@@ -461,22 +461,6 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
       console.error('FontLoader: Could not load font.', error);
     });
   }, []);
-
-  const updateSceneObjectFromTransform = useCallback((transformedObject: THREE.Object3D) => {
-    if (!transformedObject.userData.id) return;
-    const objectId = transformedObject.userData.id;
-    onLiveUpdate(prevObjects =>
-      prevObjects.map(obj => {
-        if (obj.id === objectId) {
-          const newPosition = transformedObject.position.toArray() as [number, number, number];
-          const newRotation = [transformedObject.rotation.x, transformedObject.rotation.y, transformedObject.rotation.z] as [number, number, number];
-          const newScale = transformedObject.scale.toArray() as [number, number, number];
-          return { ...obj, position: newPosition, rotation: newRotation, scale: newScale };
-        }
-        return obj;
-      })
-    );
-  }, [onLiveUpdate]);
   
   useImperativeHandle(ref, () => ({
     exportScene(format: string) {
@@ -566,13 +550,17 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
         if (orbitControlsRef.current) {
             orbitControlsRef.current.enabled = !event.value;
         }
-        if (!event.value) {
-            onTransformCommit();
-        }
-    });
-    transformControlsRef.current.addEventListener('objectChange', () => {
-        if (transformControlsRef.current?.object) {
-            updateSceneObjectFromTransform(transformControlsRef.current.object);
+        if (!event.value) { // Drag finished
+            const transformedObject = transformControlsRef.current?.object;
+            if (transformedObject && transformedObject.userData.id) {
+                const objectId = transformedObject.userData.id;
+                const newProps: Partial<SceneObject> = {
+                    position: transformedObject.position.toArray() as [number, number, number],
+                    rotation: [transformedObject.rotation.x, transformedObject.rotation.y, transformedObject.rotation.z] as [number, number, number],
+                    scale: transformedObject.scale.toArray() as [number, number, number],
+                };
+                onUpdateObject(objectId, newProps);
+            }
         }
     });
 
@@ -963,7 +951,7 @@ const ThreeScene = forwardRef<ThreeSceneRef, ThreeSceneProps>(({
             case 'Pyramid': geometry = new THREE.ConeGeometry(0.5, 1, 4); break;
             case 'Cylinder': geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32); break;
             case 'Cube': geometry = new THREE.BoxGeometry(1, 1, 1); break;
-            case 'Monkey': geometry = new THREE.TorusKnotGeometry(0.4, 0.15, 64, 8); break;
+            case 'Monkey': geometry = new THREE.TorusKnotGeometry(0.4, 0.15, 64, 8, 2, 3); break;
             case 'Capsule': geometry = new THREE.CapsuleGeometry(0.25, 0.5, 4, 8); break;
             case 'Torus': geometry = new THREE.TorusGeometry(0.4, 0.2, 16, 100); break;
             case 'TorusKnot': geometry = new THREE.TorusKnotGeometry(0.4, 0.1, 100, 16); break;
