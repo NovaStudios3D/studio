@@ -1,25 +1,83 @@
-# Cybernox3D Editor Features
+# Cybernox3D Editor Features - Detailed Breakdown
 
-## Core 3D Engine
+## Core 3D Engine & Scene
 - **3D Scene Rendering**: Utilizes Three.js for a high-performance WebGL viewport.
-- **Camera Controls**: Full orbit controls for panning, zooming, and rotating the camera.
-- **Dynamic Lighting**: A time-of-day system that realistically changes lighting and shadows.
-- **Ground & Grid**: A detailed grid on a ground plane for precise object placement.
+- **Camera Controls**: Full orbit controls for panning, zooming, and rotating the camera around the scene.
+- **Dynamic Lighting & Time of Day**: A time-of-day system that realistically changes the directional light color, intensity, and shadows. Controllable via a slider.
+- **Ground & Grid**: A detailed grid on a ground plane for precise object placement. The ground plane receives shadows from objects.
+
+## UI Layout & Panels
+
+### Left Toolbar (`ToolbarLeft.tsx`)
+A vertical toolbar providing quick access to primary actions. The buttons are arranged in the following order from top to bottom:
+
+1.  **Add Menu (`+` icon - `Plus`)**: A dropdown menu to add new elements to the scene.
+    - **Scene Items**:
+        - Skybox (`Sun` icon)
+        - Waypoint (`MapPin` icon)
+    - **Shapes Sub-Menu (`Box` icon)**:
+        - Cube (`Box` icon)
+        - Sphere (`Circle` icon)
+        - Plane (`Square` icon)
+        - Pyramid (`Pyramid` icon)
+        - Cylinder (`CylinderIcon` icon)
+        - Monkey (`Bot` icon)
+        - Capsule (`Pill` icon)
+        - Torus (`LifeBuoy` icon)
+        - Torus Knot (`Spline` icon)
+        - 3D Text (`Type` icon)
+    - **Effects Sub-Menu (`Sparkles` icon)**:
+        - Fire (`Flame` icon), Rain (`CloudRain`), Snow (`Snowflake`), Steam (`Wind`), Magic (`Sparkles`), Water (`Waves`), Fog (`Cloud`)
+    - **Import Sub-Menu (`Upload` icon)**:
+        - Scene (.cyb), Image (`ImageIcon`), Video (`Video`), Audio (`Music`), and Models (GLTF, OBJ, STL).
+    - **Export Sub-Menu (`Download` icon)**:
+        - Scene (.cyb) and Models (GLTF/GLB, OBJ).
+2.  **Separator**
+3.  **Move Tool (`Move3d` icon)**: Activates the move gizmo. Shortcut: `M`.
+4.  **Rotate Tool (`RotateCw` icon)**: Activates the rotate gizmo. Shortcut: `R`.
+5.  **Scale Tool (`Maximize2` icon)**: Activates the scale gizmo. Shortcut: `S`.
+6.  **Separator**
+7.  **Copy Tool (`Copy` icon)**: Duplicates the selected object. Shortcut: `Ctrl+D`.
+8.  **Delete Tool (`Trash2` icon)**: Deletes the selected object. Shortcut: `Delete`.
+
+### Right Panel Area
+
+- **Object List Panel (`ObjectListPanel.tsx`)**: A panel on the right listing all scene objects.
+    - **Header**:
+        - "Objects:" title.
+        - Scene options menu (`Menu` icon).
+        - Button to close the panel (`PanelRightClose` icon).
+    - **Undo/Redo Controls**:
+        - Undo button (`Undo2` icon).
+        - Redo button (`Redo2` icon).
+    - **Object List**: Each item shows:
+        - An icon representing the object type (e.g., `Box` for Cube, `Shapes` for Model).
+        - The object's name.
+        - A visibility toggle button (`Eye` / `EyeOff` icons).
+    - **Sky Settings**: If a Skybox is in the scene, this section appears with a "Time of Day" slider (0-24 hours).
+- **Properties Panel (`PropertiesPanel.tsx`)**: Appears below the Object List.
+    - Displays a summary of the selected object (Name, Color).
+    - A "View Properties" button opens a dialog for detailed editing.
+- **Panel Toggle Button**: If the right panel is closed, a button appears to re-open it (`PanelRightOpen` icon).
 
 ## Object Management
 - **Add Primitive Shapes**: Cube, Sphere, Plane, Pyramid, Cylinder, Monkey, Capsule, Torus, TorusKnot.
 - **Add 3D Text**: Create 3D text objects from user input.
 - **Select Objects**: Click objects in the scene or in the Object List to select them.
-- **Copy/Duplicate**: Clone the selected object with a single action (Ctrl+D).
-- **Delete**: Remove selected objects from the scene (Delete key).
+- **Copy/Duplicate**: Clone the selected object with a single action.
+- **Delete**: Remove selected objects from the scene.
 - **Hide/Show Objects**: Toggle the visibility of any object using the eye icon in the Object List.
-- **Undo/Redo**: Step backward and forward through your actions using dedicated Undo/Redo buttons.
+- **Undo/Redo**: Step backward and forward through your actions (object creation, deletion, transformation, etc.).
 
 ## Transformation & Properties
 - **Transform Gizmos**: Manipulate objects with visual gizmos for Move, Rotate, and Scale.
-- **Keyboard Shortcuts**: Switch between tools (M, R, S), copy (Ctrl+D), and delete.
-- **Properties Panel**: View key properties of the selected object.
-- **Property Editor**: A popup dialog to precisely edit an object's name, position, rotation, scale, and color.
+- **Property Editor Dialog**: A popup dialog to precisely edit an object's:
+    - Name
+    - Position (X, Y, Z)
+    - Rotation (X, Y, Z, in degrees)
+    - Scale (X, Y, Z)
+    - Color (via a color picker)
+- **Live Updates**: Object properties update in real-time in the viewport as you adjust them in the dialog.
 
 ## Import & Export
 - **Import Media**: Add Images and Videos to the scene, which are automatically displayed on planes.
@@ -28,13 +86,35 @@
 - **Export Scene**: Export the entire scene as a GLTF or OBJ file.
 - **Project Save/Load**: Save the complete scene state to a `.cyb` file and load it back into the editor.
 
-## UI & Panels
-- **Left Toolbar**: Quick access to add shapes, effects, and select primary tools.
-- **Object List Panel**: A comprehensive list of all objects in the scene. This panel can be closed and re-opened to maximize viewport space.
-- **Tooltips**: Helpful tooltips for all toolbar icons and buttons.
-
 ## Special Effects & Advanced Features
 - **Particle Systems**: Add pre-configured particle effects like Fire, Rain, Snow, Steam, Magic, Water, and Fog.
 - **Skybox**: Enclose the entire scene in a 360-degree sky background.
 - **Waypoints**: Place visual map-pin style waypoints within the scene.
-- **Time of Day Slider**: Interactively control the scene's lighting by dragging a slider from 0 to 24 hours.
+
+## Keyboard Shortcuts
+- **M**: Activate Move tool.
+- **R**: Activate Rotate tool.
+- **S**: Activate Scale tool.
+- **Ctrl+D / Cmd+D**: Copy selected object.
+- **Delete / Backspace**: Delete selected object.
+
+## Initial Scene Objects
+The scene starts with four pre-loaded objects:
+- **Name**: Blue Cube
+  - **Type**: Cube
+  - **Position**: [-2, 0.5, 0]
+  - **Color**: #4285F4 (Saturated Blue)
+- **Name**: Red Sphere
+  - **Type**: Sphere
+  - **Position**: [2, 0.75, 1]
+  - **Scale**: [1.5, 1.5, 1.5]
+  - **Color**: #DB4437 (Red)
+- **Name**: Green Plane
+  - **Type**: Plane
+  - **Position**: [0, 0.01, -2]
+  - **Rotation**: Rotated to be a floor plane.
+  - **Color**: #0F9D58 (Green)
+- **Name**: Yellow Cylinder
+  - **Type**: Cylinder
+  - **Position**: [0, 0.5, 2]
+  - **Color**: #F4B400 (Yellow)
