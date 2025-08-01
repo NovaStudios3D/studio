@@ -23,6 +23,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import AIChat from '@/components/cybernox/AIChat';
 
 export interface SceneObject {
   id: string;
@@ -122,6 +123,7 @@ export default function Cybernox3DPage() {
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>(initialSceneObjects);
   const [history, setHistory] = useState<SceneObject[][]>([initialSceneObjects]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
 
   const commitUpdate = useCallback((updater: (prevObjects: SceneObject[]) => SceneObject[], newSelectionId?: string | null) => {
     setHistory(prevHistory => {
@@ -552,6 +554,7 @@ export default function Cybernox3DPage() {
           onExportScene={handleExportScene}
           onImportCYB={handleImportSceneCYB}
           onExportCYB={handleExportSceneCYB}
+          onOpenAIChat={() => setIsAIChatOpen(true)}
         />
         <main className="flex-1 relative overflow-hidden">
           <ThreeScene
@@ -609,6 +612,13 @@ export default function Cybernox3DPage() {
         audioData={previewAudioData}
         onAddToScene={handleAddToSceneFromAudioPreview}
       />
+       <AIChat 
+        isOpen={isAIChatOpen} 
+        onOpenChange={setIsAIChatOpen} 
+        onAddObject={addSceneObject} 
+      />
     </TooltipProvider>
   );
 }
+
+    

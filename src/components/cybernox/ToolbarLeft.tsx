@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles, Waves, Download, Upload, Cloud, Music, Sun, Shapes, Bot, Pill, LifeBuoy, Spline, MapPin } from "lucide-react";
+import { Move3d, RotateCw, Maximize2, Trash2, Copy, Plus, Box, Circle, Pyramid, Cylinder as CylinderIcon, Type, Square, Image as ImageIcon, Video, Flame, CloudRain, Snowflake, Wind, Sparkles as SparklesIcon, Waves, Download, Upload, Cloud, Music, Sun, Shapes, Bot, Pill, LifeBuoy, Spline, MapPin, Sparkles } from "lucide-react";
 import type { SceneObject, ActiveTool } from "@/app/page";
 
 interface ToolbarLeftProps {
@@ -33,6 +33,7 @@ interface ToolbarLeftProps {
   onExportScene: (format: string) => void;
   onImportCYB: () => void;
   onExportCYB: () => void;
+  onOpenAIChat: () => void;
 }
 
 const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
@@ -49,6 +50,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   onExportScene,
   onImportCYB,
   onExportCYB,
+  onOpenAIChat,
 }) => {
   const mainTools = [
     { name: "Move" as ActiveTool, icon: <Move3d className="w-5 h-5" />, ariaLabel: "Move Tool (M)" },
@@ -79,7 +81,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
     { name: "Rain", icon: <CloudRain className="w-4 h-4 mr-2" /> },
     { name: "Snow", icon: <Snowflake className="w-4 h-4 mr-2" /> },
     { name: "Steam", icon: <Wind className="w-4 h-4 mr-2" /> },
-    { name: "Magic", icon: <Sparkles className="w-4 h-4 mr-2" /> },
+    { name: "Magic", icon: <SparklesIcon className="w-4 h-4 mr-2" /> },
     { name: "Water", icon: <Waves className="w-4 h-4 mr-2" /> },
     { name: "Fog", icon: <Cloud className="w-4 h-4 mr-2" /> },
   ];
@@ -96,7 +98,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
   ];
 
   return (
-      <div className="p-3 bg-card border-r border-border flex flex-col items-center space-y-3 shadow-md">
+      <div className="p-3 bg-card border-r border-border flex flex-col items-center space-y-3 shadow-md h-full">
         {/* Add Shape/Effect Dropdown */}
         <DropdownMenu>
           <Tooltip>
@@ -145,7 +147,7 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             </DropdownMenuSub>
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <SparklesIcon className="w-4 h-4 mr-2" />
                     <span>Effects</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
@@ -264,8 +266,28 @@ const ToolbarLeft: React.FC<ToolbarLeftProps> = ({
             </TooltipContent>
           </Tooltip>
         ))}
+         <div className="flex-grow"></div>
+         <div className="border-t border-border w-full my-1"></div>
+         <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full w-12 h-12 shadow-md hover:shadow-lg transition-all duration-150 ease-in-out transform hover:scale-110 focus:scale-110 hover:bg-primary/20"
+                onClick={onOpenAIChat}
+                aria-label="AI Assistant"
+              >
+                <Sparkles className="w-5 h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+                <p>AI Assistant</p>
+            </TooltipContent>
+        </Tooltip>
       </div>
   );
 };
 
 export default ToolbarLeft;
+
+    
