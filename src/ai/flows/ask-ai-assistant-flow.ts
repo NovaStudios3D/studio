@@ -46,24 +46,37 @@ export async function askAI(input: AIInput): Promise<AIOutput> {
 }
 
 const assistantPrompt = ai.definePrompt({
-    name: 'askAIAssistantPrompt',
-    input: { schema: AIInputSchema },
-    output: { schema: AIOutputSchema },
-    prompt: `You are an AI assistant embedded in a 3D modeling web application called Cybernox3D.
+  name: 'askAIAssistantPrompt',
+  input: { schema: AIInputSchema },
+  output: { schema: AIOutputSchema },
+  prompt: `You are an AI assistant embedded in a 3D modeling web application called Cybernox3D.
 Your capabilities are:
 1.  Answer questions about how to use the application based on its features.
 2.  Generate a 3D model based on a user's description.
 
 When the user asks a question, provide a concise and helpful answer based on the feature list provided below.
-When the user asks for a 3D model, set the 'type' field to "model", provide a suitable 'modelName' for the object, and set the 'modelData' to a dummy base64 string "CgA=". For the 'content' field, provide a confirmation message like "I have created the [modelName] model for you." Do not try to describe the model in the content.
+When the user asks for a 3D model, set the 'type' field to "model", provide a suitable 'modelName' for the object, and set the 'modelData' to the base64-encoded GLB data of the generated model. For the 'content' field, provide a confirmation message like "I have created the [modelName] model for you."
 
 If the user's intent is unclear, assume they are asking a question.
 
 Here is the list of application features:
 ${features}
 
-User query: {{{prompt}}}`
+User query: {{{prompt}}}`,
 });
+
+const modelerPrompt = ai.definePrompt({
+    name: 'modelerPrompt',
+    input: { schema: z.string() },
+    output: { schema: z.any() },
+    prompt: `You are a 3D modeler. Generate a 3D model in GLB format based on the following description: {{{prompt}}}`,
+    config: {
+        response: {
+            format: 'glb'
+        }
+    }
+});
+
 
 const askAIAssistantFlow = ai.defineFlow(
   {
@@ -72,33 +85,45 @@ const askAIAssistantFlow = ai.defineFlow(
     outputSchema: AIOutputSchema,
   },
   async (prompt) => {
-    const { output } = await assistantPrompt(prompt);
-    if (!output) {
+    const llmResponse = await assistantPrompt(prompt);
+    
+    if (!llmResponse.output) {
       return {
         type: 'answer',
         content: "I'm sorry, I couldn't process that request. Please try again.",
       };
     }
+    const assistantOutput = llmResponse.output;
 
-    if (output.type === 'model') {
-        // Sanitize model name and provide a fallback.
-        let modelName = output.modelName?.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+    if (assistantOutput.type === 'model') {
+        let modelName = assistantOutput.modelName?.replace(/[^a-zA-Z0-9\s]/g, '').trim();
         if (!modelName || modelName.length === 0) {
             modelName = 'Generated Model';
         }
+
+        const modelerResponse = await modelerPrompt(prompt);
+        const modelOutput = modelerResponse.output as { media: { url: string } } | null;
+        
+        if (!modelOutput?.media?.url) {
+             return {
+                type: 'answer',
+                content: `I'm sorry, I was unable to create the "${modelName}" model. Please try a different description.`,
+            };
+        }
+
+        const base64Data = modelOutput.media.url.split(',')[1];
+
         return {
             type: 'model',
             content: `I've created the "${modelName}" model and added it to your scene.`,
             modelName: modelName,
-            modelData: output.modelData || "CgA=", // Ensure dummy data is present
+            modelData: base64Data,
         };
     }
     
     return {
         type: 'answer',
-        content: output.content,
+        content: assistantOutput.content,
     };
   }
 );
-
-    
