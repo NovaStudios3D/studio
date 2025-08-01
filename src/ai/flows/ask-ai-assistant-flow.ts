@@ -96,7 +96,7 @@ const askAIAssistantFlow = ai.defineFlow(
     const assistantOutput = llmResponse.output;
 
     if (assistantOutput.type === 'model') {
-        let modelName = assistantOutput.modelName?.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        let modelName = assistantOutput.modelName?.replace(/[^a-zA-Z0-9\\s]/g, '').trim();
         if (!modelName || modelName.length === 0) {
             modelName = 'Generated Model';
         }
