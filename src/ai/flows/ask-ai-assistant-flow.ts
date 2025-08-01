@@ -68,7 +68,6 @@ User query: {{{prompt}}}`,
 const modelerPrompt = ai.definePrompt({
     name: 'modelerPrompt',
     input: { schema: z.string() },
-    output: { schema: z.any() },
     prompt: `You are a 3D modeler. Generate a 3D model in GLB format based on the following description: {{{prompt}}}`,
     config: {
         response: {
@@ -102,16 +101,15 @@ const askAIAssistantFlow = ai.defineFlow(
         }
 
         const modelerResponse = await modelerPrompt(prompt);
-        const modelOutput = modelerResponse.output as { media: { url: string } } | null;
         
-        if (!modelOutput?.media?.url) {
+        if (!modelerResponse.media?.url) {
              return {
                 type: 'answer',
                 content: `I'm sorry, I was unable to create the "${modelName}" model. Please try a different description.`,
             };
         }
 
-        const base64Data = modelOutput.media.url.split(',')[1];
+        const base64Data = modelerResponse.media.url.split(',')[1];
 
         return {
             type: 'model',
