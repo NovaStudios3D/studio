@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI assistant for the Cybernox3D editor.
@@ -45,24 +44,13 @@ export async function askAI(input: AIInput): Promise<AIOutput> {
   return askAIAssistantFlow(input);
 }
 
-const assistantPrompt = ai.definePrompt({
-  name: 'askAIAssistantPrompt',
-  input: { schema: AIInputSchema },
-  output: { schema: AIOutputSchema },
-  prompt: `You are an AI assistant embedded in a 3D modeling web application called Cybernox3D.
-Your capabilities are:
-1.  Answer questions about how to use the application based on its features.
-2.  Generate a 3D model based on a user's description.
-
-When the user asks a question, provide a concise and helpful answer based on the feature list provided below.
-When the user asks for a 3D model, set the 'type' field to "model", provide a suitable 'modelName' for the object, and set the 'modelData' to the base64-encoded GLB data of the generated model. For the 'content' field, provide a confirmation message like "I have created the [modelName] model for you."
-
-If the user's intent is unclear, assume they are asking a question.
-
-Here is the list of application features:
-${features}
-
-User query: {{{prompt}}}`,
+const intentPrompt = ai.definePrompt({
+    name: 'assistantIntentPrompt',
+    input: { schema: z.string() },
+    output: { schema: z.object({ isModelRequest: z.boolean().describe("Set to true if the user wants to generate a 3D model. Keywords include 'generate', 'create', 'make', 'model of'.") }) },
+    prompt: `Analyze the user's query and determine if they want to generate a 3D model.
+  
+  User query: {{{prompt}}}`,
 });
 
 const modelerPrompt = ai.definePrompt({
@@ -84,22 +72,20 @@ const askAIAssistantFlow = ai.defineFlow(
     outputSchema: AIOutputSchema,
   },
   async (prompt) => {
-    const llmResponse = await assistantPrompt(prompt);
-    
-    if (!llmResponse.output) {
-      return {
-        type: 'answer',
-        content: "I'm sorry, I couldn't process that request. Please try again.",
-      };
-    }
-    const assistantOutput = llmResponse.output;
+    const intentResponse = await intentPrompt(prompt);
+    const intent = intentResponse.output;
 
-    if (assistantOutput.type === 'model') {
-        let modelName = assistantOutput.modelName?.replace(/[^a-zA-Z0-9\\s]/g, '').trim();
-        if (!modelName || modelName.length === 0) {
-            modelName = 'Generated Model';
+    if (intent?.isModelRequest) {
+        let modelName = 'Generated Model';
+        try {
+            const nameResponse = await ai.generate({
+                prompt: `Create a concise, two-word name for a 3D model based on this description: "${prompt}". For example, 'Red car' or 'Oak tree'.`
+            });
+            modelName = nameResponse.text?.replace(/["']/g, "").trim() || modelName;
+        } catch (e) {
+            console.warn("Could not generate a model name, using default.");
         }
-
+        
         const modelerResponse = await modelerPrompt(prompt);
         
         if (!modelerResponse.media?.url) {
@@ -119,9 +105,20 @@ const askAIAssistantFlow = ai.defineFlow(
         };
     }
     
+    // If it's not a model request, answer the question.
+    const qaResponse = await ai.generate({
+        prompt: `You are an AI assistant in a 3D editor called Cybernox3D. Answer the user's question based on the features below. Be concise.
+
+Features:
+${features}
+
+Question: ${prompt}
+Answer:`
+    });
+    
     return {
         type: 'answer',
-        content: assistantOutput.content,
+        content: qaResponse.text || "I'm sorry, I couldn't process that request. Please try again.",
     };
   }
 );
