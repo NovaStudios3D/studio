@@ -56,12 +56,7 @@ const intentPrompt = ai.definePrompt({
 const modelerPrompt = ai.definePrompt({
     name: 'modelerPrompt',
     input: { schema: z.string() },
-    prompt: `You are a 3D modeler. Generate a 3D model in GLB format based on the following description: {{{prompt}}}`,
-    config: {
-        response: {
-            format: 'glb'
-        }
-    }
+    prompt: `You are a 3D modeler. Your response will be used to generate a 3D model in GLB format. Based on the following description, provide the necessary data: {{{prompt}}}`,
 });
 
 
@@ -81,9 +76,12 @@ const askAIAssistantFlow = ai.defineFlow(
             const nameResponse = await ai.generate({
                 prompt: `Create a concise, two-word name for a 3D model based on this description: "${prompt}". For example, 'Red car' or 'Oak tree'.`
             });
-            modelName = nameResponse.text?.replace(/["']/g, "").trim() || modelName;
+            const generatedName = nameResponse.text?.replace(/["']/g, "").trim();
+            if (generatedName) {
+                modelName = generatedName;
+            }
         } catch (e) {
-            console.warn("Could not generate a model name, using default.");
+            console.warn("Could not generate a model name, using default.", e);
         }
         
         const modelerResponse = await modelerPrompt(prompt);
@@ -91,7 +89,7 @@ const askAIAssistantFlow = ai.defineFlow(
         if (!modelerResponse.media?.url) {
              return {
                 type: 'answer',
-                content: `I'm sorry, I was unable to create the "${modelName}" model. Please try a different description.`,
+                content: `I'm sorry, I was unable to create the "${modelName}" model. Please try a different description. The model generation failed.`,
             };
         }
 
